@@ -27,7 +27,34 @@ export function Logo({ branco = false, className = "h-9 w-auto md:h-10" }: { bra
   );
 }
 
-function MenuUsuario() {
+/** Verdadeiro enquanto o topo da página ainda está sobre o hero da home. */
+function useSobreHero(ativo: boolean) {
+  const [sobre, setSobre] = useState(ativo);
+  useEffect(() => {
+    if (!ativo) return setSobre(false);
+    let quadro = 0;
+    const medir = () => {
+      quadro = 0;
+      const hero = document.getElementById("hero");
+      const limite = (hero?.offsetHeight ?? window.innerHeight) - 72;
+      setSobre(window.scrollY < limite);
+    };
+    const aoRolar = () => {
+      if (!quadro) quadro = requestAnimationFrame(medir);
+    };
+    medir();
+    window.addEventListener("scroll", aoRolar, { passive: true });
+    window.addEventListener("resize", aoRolar);
+    return () => {
+      window.removeEventListener("scroll", aoRolar);
+      window.removeEventListener("resize", aoRolar);
+      cancelAnimationFrame(quadro);
+    };
+  }, [ativo]);
+  return sobre;
+}
+
+function MenuUsuario({ claro = false }: { claro?: boolean }) {
   const usuario = useConta();
   const [aberto, setAberto] = useState(false);
   const caixa = useRef<HTMLDivElement>(null);
@@ -50,7 +77,7 @@ function MenuUsuario() {
 
   if (!usuario) {
     return (
-      <Link to="/entrar" className="btn-escuro hidden py-2.5 sm:inline-flex">
+      <Link to="/entrar" className={`hidden py-2.5 sm:inline-flex ${claro ? "btn bg-white text-ink hover:bg-white/90" : "btn-escuro"}`}>
         <Icone nome="usuario" className="h-[18px] w-[18px]" /> Entrar
       </Link>
     );
@@ -63,7 +90,7 @@ function MenuUsuario() {
         onClick={() => setAberto((a) => !a)}
         aria-haspopup="menu"
         aria-expanded={aberto}
-        className="flex items-center gap-1.5 rounded-full border border-ink/15 py-1 pl-1 pr-3 hover:border-ink/40"
+        className={`flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-3 transition-colors ${claro ? "border-white/40 text-white hover:border-white/80" : "border-ink/15 hover:border-ink/40"}`}
       >
         <span className="grid h-9 w-9 place-items-center rounded-full bg-ink text-[13px] font-semibold text-white">{iniciais(usuario.nome)}</span>
         <Icone nome="baixo" className={`h-4 w-4 transition-transform ${aberto ? "rotate-180" : ""}`} />
@@ -100,12 +127,18 @@ function Cabecalho() {
   useEffect(() => {
     document.body.style.overflow = aberto ? "hidden" : "";
   }, [aberto]);
+  // Na home o cabeçalho fica por cima da foto, transparente, e ganha fundo branco ao passar dela.
+  const home = local.pathname === "/";
+  const claro = useSobreHero(home);
 
   return (
-    <header className="sticky z-40 border-b border-sand-200 bg-white/95 backdrop-blur" style={{ top: "env(safe-area-inset-top, 0px)" }}>
+    <header
+      className={`z-40 border-b transition-colors duration-300 ${home ? "fixed inset-x-0" : "sticky"} ${claro ? "border-transparent bg-transparent" : "border-sand-200 bg-white/95 backdrop-blur"}`}
+      style={{ top: "env(safe-area-inset-top, 0px)" }}
+    >
       <div className="container-site flex h-[72px] items-center justify-between gap-6">
         <Link to="/" aria-label="Patrimóvel Administradora, página inicial" className="shrink-0">
-          <Logo />
+          <Logo branco={claro} />
         </Link>
         <nav aria-label="Principal" className="hidden lg:block">
           <ul className="flex items-center gap-1">
@@ -114,7 +147,9 @@ function Cabecalho() {
                 <NavLink
                   to={n.to}
                   className={({ isActive }) =>
-                    `rounded-full px-3.5 py-2 text-[15px] font-medium transition-colors ${isActive ? "bg-brand-50 text-brand-700" : "text-ink-soft hover:text-ink"}`
+                    `rounded-full px-3.5 py-2 text-[15px] font-medium transition-colors ${
+                      claro ? "text-white/90 [text-shadow:0_1px_8px_rgba(0,0,0,.3)] hover:text-white" : isActive ? "bg-brand-50 text-brand-700" : "text-ink-soft hover:text-ink"
+                    }`
                   }
                 >
                   {n.rotulo}
@@ -124,15 +159,15 @@ function Cabecalho() {
           </ul>
         </nav>
         <div className="flex items-center gap-2">
-          <Link to="/favoritos" className="relative grid h-11 w-11 place-items-center rounded-full text-ink-soft hover:bg-sand-100" aria-label={`Favoritos (${lista.length})`}>
+          <Link to="/favoritos" className={`relative grid h-11 w-11 place-items-center rounded-full ${claro ? "text-white hover:bg-white/10" : "text-ink-soft hover:bg-sand-100"}`} aria-label={`Favoritos (${lista.length})`}>
             <Icone nome="coracao" className="h-[22px] w-[22px]" />
             {lista.length > 0 && (
               <span className="num absolute right-1 top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-brand-600 px-1 text-[11px] font-semibold text-white">{lista.length}</span>
             )}
           </Link>
-          <Link to="/anunciar" className="btn-contorno hidden py-2.5 xl:inline-flex">Anuncie seu imóvel</Link>
-          <MenuUsuario />
-          <button className="grid h-11 w-11 place-items-center rounded-full hover:bg-sand-100 lg:hidden" aria-label="Abrir menu" aria-expanded={aberto} onClick={() => setAberto(true)}>
+          <Link to="/anunciar" className={`hidden py-2.5 xl:inline-flex ${claro ? "btn border border-white/60 text-white hover:bg-white/10" : "btn-contorno"}`}>Anuncie seu imóvel</Link>
+          <MenuUsuario claro={claro} />
+          <button className={`grid h-11 w-11 place-items-center rounded-full lg:hidden ${claro ? "text-white hover:bg-white/10" : "hover:bg-sand-100"}`} aria-label="Abrir menu" aria-expanded={aberto} onClick={() => setAberto(true)}>
             <Icone nome="menu" className="h-6 w-6" />
           </button>
         </div>

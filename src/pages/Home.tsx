@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { BuscaHero } from "../components/BuscaHero";
 import { GradeImoveis } from "../components/CardImovel";
@@ -21,34 +22,61 @@ export default function Home() {
   const comerciais = imoveis.filter(ehComercial);
   const residenciaisAlugar = alugar.filter((i) => !ehComercial(i));
   const residenciaisComprar = comprar.filter((i) => !ehComercial(i));
+  const fundo = useRef<HTMLDivElement>(null);
+
+  // Parallax: a foto desce mais devagar que a página enquanto o hero está na tela.
+  useEffect(() => {
+    const el = fundo.current;
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let quadro = 0;
+    const mover = () => {
+      quadro = 0;
+      const y = window.scrollY;
+      if (y <= (el.parentElement?.offsetHeight ?? window.innerHeight)) el.style.transform = `translate3d(0, ${Math.round(y * 0.45)}px, 0)`;
+    };
+    const aoRolar = () => {
+      if (!quadro) quadro = requestAnimationFrame(mover);
+    };
+    mover();
+    window.addEventListener("scroll", aoRolar, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", aoRolar);
+      cancelAnimationFrame(quadro);
+    };
+  }, []);
 
   return (
     <>
-      {/* Hero */}
-      <section className="relative isolate overflow-hidden bg-mar">
-        <picture>
-          <source media="(max-width: 767px)" srcSet="/img/hero-ipanema-mobile.webp" />
-          <source media="(max-width: 1100px)" srcSet="/img/hero-ipanema-900.webp 900w, /img/hero-ipanema-1760.webp 1760w" sizes="100vw" />
-          <img
-            src="/img/hero-ipanema-1760.webp"
-            alt="Vista aérea da praia de Ipanema com o Morro Dois Irmãos ao fundo"
-            width={1760}
-            height={990}
-            {...{ fetchpriority: "high" }}
-            className="absolute inset-0 -z-10 h-full w-full object-cover object-[60%_center]"
-          />
-        </picture>
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#0b2233]/70 via-[#0b2233]/25 to-[#0b2233]/70" />
-        <div className="container-site pb-10 pt-16 md:pb-16 md:pt-28">
-          <div className="max-w-4xl text-white">
+      {/* Hero em tela cheia, com a foto em parallax por trás do cabeçalho transparente */}
+      <section id="hero" className="relative isolate flex min-h-[100svh] items-center overflow-hidden bg-mar">
+        <div ref={fundo} className="absolute inset-0 -z-20 will-change-transform">
+          <picture>
+            <source media="(max-width: 767px)" srcSet="/img/hero-ipanema-mobile.webp" />
+            <source media="(max-width: 1100px)" srcSet="/img/hero-ipanema-900.webp 900w, /img/hero-ipanema-1760.webp 1760w" sizes="100vw" />
+            <img
+              src="/img/hero-ipanema-1760.webp"
+              alt="Vista aérea da praia de Ipanema com o Morro Dois Irmãos ao fundo"
+              width={1760}
+              height={990}
+              {...{ fetchpriority: "high" }}
+              className="h-full w-full object-cover object-[60%_center]"
+            />
+          </picture>
+        </div>
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#0b2233]/75 via-[#0b2233]/25 to-[#0b2233]/65" />
+        <div className="container-site pb-24 pt-[112px] md:pb-28">
+          <div className="mx-auto max-w-4xl text-center text-white">
             <p className="mb-4 text-[14px] font-medium text-white/85">Patrimóvel Administradora · CRECI {empresa.creci}</p>
-            <h1 className="text-[34px] font-bold leading-[1.08] md:text-[54px]">Encontre imóveis exclusivos na Barra e Zona Sul do Rio</h1>
+            <h1 className="text-[34px] font-bold leading-[1.08] [text-shadow:0_2px_24px_rgba(0,0,0,.25)] md:text-[56px]">Encontre imóveis exclusivos na Barra e Zona Sul do Rio</h1>
           </div>
-          <div className="mt-8 max-w-4xl md:mt-10">
+          <div className="mx-auto mt-8 max-w-4xl md:mt-10">
             <BuscaHero bairros={bairros} imoveis={imoveis} />
           </div>
+          <p className="mt-5 text-center">
+            <Link to="/anunciar" className="text-[15px] font-semibold text-white underline underline-offset-4 hover:text-white/85">Anuncie seu imóvel gratuitamente</Link>
+          </p>
           {bairros.length > 0 && (
-            <ul className="mt-5 flex flex-wrap gap-2" aria-label="Bairros com mais imóveis">
+            <ul className="mt-5 flex flex-wrap justify-center gap-2" aria-label="Bairros com mais imóveis">
               {bairros.slice(0, 6).map((b) => (
                 <li key={b.slug}>
                   <Link to={`/bairros/${b.slug}`} className="num inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-3.5 py-1.5 text-[14px] text-white backdrop-blur hover:bg-white/20">
@@ -59,6 +87,9 @@ export default function Home() {
             </ul>
           )}
         </div>
+        <a href="#destaques" aria-label="Ver imóveis" className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 animate-bounce text-white/80 hover:text-white md:block">
+          <Icone nome="baixo" className="h-8 w-8" />
+        </a>
       </section>
 
       {/* Proprietário */}
@@ -79,7 +110,7 @@ export default function Home() {
       </section>
 
       {/* Destaques aluguel */}
-      <section className="container-site pt-16 md:pt-20">
+      <section id="destaques" className="container-site pt-16 md:pt-20">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="titulo-secao">Para alugar</h2>
