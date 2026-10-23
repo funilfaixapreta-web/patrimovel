@@ -1,5 +1,4 @@
-import { useId, useState, type InputHTMLAttributes, type ReactNode } from "react";
-import { Icone } from "./Icone";
+import { useId, type InputHTMLAttributes, type ReactNode } from "react";
 
 export function Rotulo({ htmlFor, children, obrigatorio, opcional }: { htmlFor?: string; children: ReactNode; obrigatorio?: boolean; opcional?: boolean }) {
   return (
@@ -179,17 +178,5 @@ export function Marcar({ marcado, aoMudar, children }: { marcado: boolean; aoMud
       <input type="checkbox" checked={marcado} onChange={(e) => aoMudar(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-brand-600" />
       <span>{children}</span>
     </label>
-  );
-}
-
-export function AvisoPrototipo({ className = "" }: { className?: string }) {
-  const [fechado, setFechado] = useState(false);
-  if (fechado) return null;
-  return (
-    <div className={`flex items-start gap-3 rounded-xl border border-[#f3d79b] bg-[#fdf6e6] px-4 py-3 text-[13.5px] text-[#6b4a00] ${className}`} role="note">
-      <Icone nome="alerta" className="mt-0.5 h-[18px] w-[18px] shrink-0" />
-      <p className="flex-1">Protótipo navegável: conta, imóveis e fotos ficam salvos só neste navegador e ainda não chegam à Patrimóvel ADM.</p>
-      <button type="button" onClick={() => setFechado(true)} aria-label="Fechar aviso" className="shrink-0 rounded p-0.5 hover:bg-black/5"><Icone nome="fechar" className="h-4 w-4" /></button>
-    </div>
   );
 }

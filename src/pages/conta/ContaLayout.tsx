@@ -1,5 +1,4 @@
 import { Link, NavLink, Navigate, Outlet, useLocation } from "react-router-dom";
-import { AvisoPrototipo } from "../../components/Campos";
 import { Icone } from "../../components/Icone";
 import { iniciais, situacaoTermo, useAnuncios, useConta } from "../../lib/conta";
 
@@ -7,6 +6,7 @@ export default function ContaLayout() {
   const usuario = useConta();
   const local = useLocation();
   const anuncios = useAnuncios(usuario?.id);
+  if (usuario === undefined) return <div className="container-site min-h-[50vh] pt-10" aria-busy="true" />;
   if (!usuario) return <Navigate to={`/entrar?volta=${encodeURIComponent(local.pathname + local.search)}`} replace />;
 
   const pendentesTermo = anuncios.filter((a) => a.status !== "rascunho" && ["vencendo", "vencido", "pendente"].includes(situacaoTermo(a).situacao)).length;
@@ -17,7 +17,6 @@ export default function ContaLayout() {
 
   return (
     <div className="container-site pt-8 md:pt-10">
-      <AvisoPrototipo className="mb-6" />
       <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-[96px] lg:self-start">
           <div className="flex items-center gap-3 rounded-2xl border border-sand-200 p-4 lg:flex-col lg:p-6 lg:text-center">

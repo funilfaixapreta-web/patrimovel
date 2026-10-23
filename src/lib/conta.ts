@@ -1,9 +1,14 @@
-import { useEffect, useState } from "react";
-import { validadeTermoDias } from "../config";
+import { useSyncExternalStore } from "react";
+import type { Session } from "@supabase/supabase-js";
+import { siteOrgId } from "../config";
+import { enviarLeadAoCrm } from "./leads";
+import { supabase } from "./supabase";
 
-// PROTÓTIPO: conta, anúncios e termos guardados só neste navegador (localStorage).
-// Quando existir backend, troque as funções deste arquivo por chamadas à API
-// mantendo as mesmas assinaturas; as telas não precisam mudar.
+// Conta do anunciante, anúncios e termos no Supabase do CRM (tabelas
+// site_anunciantes e site_anuncios, migration em supabase/migrations).
+// Login: Supabase Auth com e-mail e senha. Mudança de status (enviar, pausar,
+// reativar, renovar, excluir) só por RPC; o navegador grava só etapa e dados.
+// As telas leem um retrato em memória, atualizado a cada gravação.
 
 export interface Usuario {
   id: string;
@@ -30,6 +35,9 @@ export type NegocioAnuncio = "venda" | "locacao" | "venda_locacao";
 export interface FotoAnuncio {
   id: string;
   nome: string;
+  /** Caminho no bucket site-anuncios: <usuario>/<anuncio>/<foto>.jpg */
+  caminho: string;
+  url: string;
 }
 
 export interface Termo {
@@ -43,6 +51,8 @@ export interface Anuncio {
   codigo: string;
   usuarioId: string;
   status: StatusAnuncio;
+  /** Quem pausou: o próprio anunciante, a equipe no CRM ou o termo vencido. */
+  pausadoPor?: "anunciante" | "equipe" | "termo";
   etapa: number;
   criadoEm: string;
   atualizadoEm: string;
@@ -104,111 +114,220 @@ export interface Anuncio {
   termo?: Termo;
 }
 
-const K_USUARIOS = "padm:proto:usuarios";
-const K_SESSAO = "padm:proto:sessao";
-const K_ANUNCIOS = "padm:proto:anuncios";
-const EVENTO = "padm:proto";
 export const VERSAO_TERMO = "2026.1";
-
-function ler<T>(chave: string, padrao: T): T {
-  try {
-    const v = localStorage.getItem(chave);
-    return v ? (JSON.parse(v) as T) : padrao;
-  } catch {
-    return padrao;
-  }
-}
-
-function gravar(chave: string, valor: unknown) {
-  try {
-    localStorage.setItem(chave, JSON.stringify(valor));
-  } catch {
-    /* armazenamento cheio ou bloqueado */
-  }
-  window.dispatchEvent(new Event(EVENTO));
-}
 
 export function novoId() {
   return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+// ---------- Retrato em memória ----------
+
+interface Estado {
+  /** false até a sessão salva no navegador ser lida. */
+  pronto: boolean;
+  usuario: Usuario | null;
+  anuncios: Anuncio[];
+  /** O usuário abriu o link de "esqueci minha senha" e precisa criar uma nova. */
+  novaSenha: boolean;
+}
+
+let estado: Estado = { pronto: false, usuario: null, anuncios: [], novaSenha: false };
+const ouvintes = new Set<() => void>();
+
+function definir(p: Partial<Estado>) {
+  estado = { ...estado, ...p };
+  ouvintes.forEach((f) => f());
+}
+
+function assinar(f: () => void) {
+  ouvintes.add(f);
+  return () => {
+    ouvintes.delete(f);
+  };
+}
+
+function falha(e: { message?: string; code?: string } | null, padrao = "Não foi possível salvar agora. Tente de novo."): never {
+  // Mensagens das RPCs (errcode 22023/P0002) já vêm em português para o anunciante.
+  if (e?.code === "22023" || e?.code === "P0002") throw new Error(e.message);
+  console.error(e);
+  throw new Error(padrao);
+}
+
+// ---------- Conversão banco <-> telas ----------
+
+type LinhaUsuario = {
+  id: string; nome: string; email: string; telefone: string; rg: string; cpf: string; estado_civil: string;
+  nascimento: string; cep: string; rua: string; numero: string; complemento: string; bairro: string;
+  cidade: string; uf: string; criado_em: string;
+};
+
+type LinhaAnuncio = {
+  id: string; codigo: string; anunciante_id: string; status: StatusAnuncio; pausado_por: Anuncio["pausadoPor"] | null;
+  etapa: number; dados: Record<string, unknown>; termo_versao: string | null; termo_aceito_em: string | null;
+  termo_valido_ate: string | null; enviado_em: string | null; criado_em: string; atualizado_em: string;
+};
+
+const CONTROLE = ["id", "codigo", "usuarioId", "status", "pausadoPor", "etapa", "criadoEm", "atualizadoEm", "enviadoEm", "termo"] as const;
+
+function deLinhaUsuario(l: LinhaUsuario): Usuario {
+  return {
+    id: l.id, nome: l.nome, email: l.email, telefone: l.telefone, rg: l.rg, cpf: l.cpf, estadoCivil: l.estado_civil,
+    nascimento: l.nascimento, cep: l.cep, rua: l.rua, numero: l.numero, complemento: l.complemento, bairro: l.bairro,
+    cidade: l.cidade, uf: l.uf, criadoEm: l.criado_em,
+  };
+}
+
+function paraLinhaUsuario(u: Usuario) {
+  return {
+    nome: u.nome.trim(), telefone: u.telefone, rg: u.rg, cpf: u.cpf, estado_civil: u.estadoCivil, nascimento: u.nascimento,
+    cep: u.cep, rua: u.rua, numero: u.numero, complemento: u.complemento, bairro: u.bairro, cidade: u.cidade, uf: u.uf,
+  };
+}
+
+function deLinhaAnuncio(l: LinhaAnuncio): Anuncio {
+  const base = novoAnuncio(l.anunciante_id);
+  return {
+    ...base,
+    ...(l.dados as Partial<Anuncio>),
+    id: l.id,
+    codigo: l.codigo,
+    usuarioId: l.anunciante_id,
+    status: l.status,
+    pausadoPor: l.pausado_por ?? undefined,
+    etapa: l.etapa,
+    criadoEm: l.criado_em,
+    atualizadoEm: l.atualizado_em,
+    enviadoEm: l.enviado_em ?? undefined,
+    termo: l.termo_versao && l.termo_aceito_em && l.termo_valido_ate
+      ? { versao: l.termo_versao, aceitoEm: l.termo_aceito_em, validoAte: l.termo_valido_ate }
+      : undefined,
+  };
+}
+
+function dadosDo(a: Anuncio) {
+  const d: Record<string, unknown> = { ...a };
+  CONTROLE.forEach((k) => delete d[k]);
+  return d;
+}
+
+function guardarAnuncio(a: Anuncio) {
+  const lista = estado.anuncios.filter((x) => x.id !== a.id);
+  definir({ anuncios: [a, ...lista].sort((x, y) => y.atualizadoEm.localeCompare(x.atualizadoEm)) });
+  return a;
+}
+
+// ---------- Sessão ----------
+
+let carregando = 0;
+
+async function carregar(sessao: Session | null) {
+  const vez = ++carregando;
+  if (!sessao) return definir({ pronto: true, usuario: null, anuncios: [] });
+  let { data: perfil } = await supabase.from("site_anunciantes").select("*").eq("id", sessao.user.id).maybeSingle();
+  if (!perfil) {
+    // Primeiro login (inclusive depois de confirmar o e-mail): cria o perfil com o que veio no cadastro.
+    const meta = sessao.user.user_metadata ?? {};
+    const { data, error } = await supabase
+      .from("site_anunciantes")
+      .insert({ id: sessao.user.id, org_id: siteOrgId, nome: String(meta.nome ?? ""), telefone: String(meta.telefone ?? "") })
+      .select("*")
+      .single();
+    if (error) console.error("[conta] perfil:", error);
+    perfil = data;
+  }
+  const { data: linhas, error } = await supabase.from("site_anuncios").select("*").order("atualizado_em", { ascending: false });
+  if (error) console.error("[conta] anúncios:", error);
+  if (vez !== carregando) return;
+  definir({
+    pronto: true,
+    usuario: perfil ? deLinhaUsuario(perfil as LinhaUsuario) : null,
+    anuncios: ((linhas ?? []) as LinhaAnuncio[]).map(deLinhaAnuncio),
+  });
+}
+
+supabase.auth.onAuthStateChange((evento, sessao) => {
+  if (evento === "PASSWORD_RECOVERY") definir({ novaSenha: true });
+  if (evento === "TOKEN_REFRESHED" || evento === "USER_UPDATED") return;
+  // Fora do callback: chamar o supabase aqui dentro trava o cliente.
+  setTimeout(() => void carregar(sessao), 0);
+});
+
 // ---------- Conta ----------
 
-function usuarios(): Record<string, Usuario> {
-  return ler(K_USUARIOS, {});
-}
-
 export function usuarioAtual(): Usuario | null {
-  const id = ler<string | null>(K_SESSAO, null);
-  return id ? usuarios()[id] ?? null : null;
+  return estado.usuario;
 }
 
-export function porEmail(email: string): Usuario | null {
-  const e = email.trim().toLowerCase();
-  return Object.values(usuarios()).find((u) => u.email === e) ?? null;
+const MENSAGENS_LOGIN: Record<string, string> = {
+  "Invalid login credentials": "E-mail ou senha incorretos.",
+  "Email not confirmed": "Confirme o e-mail pelo link que enviamos antes de entrar.",
+  "User already registered": "Já existe uma conta com este e-mail. Entre por aqui.",
+};
+
+function erroLogin(e: { message: string; status?: number }): never {
+  if (e.status === 429) throw new Error("Muitas tentativas. Espere alguns minutos e tente de novo.");
+  throw new Error(MENSAGENS_LOGIN[e.message] ?? e.message);
 }
 
-export function criarConta(dados: { nome: string; email: string; telefone: string }): Usuario {
-  const u: Usuario = {
-    id: novoId(),
-    nome: dados.nome.trim(),
+const voltaDoEmail = () => `${window.location.origin}/entrar`;
+
+/** Cria a conta. `confirmar` = o projeto pede confirmação do e-mail antes de entrar. */
+export async function criarConta(dados: { nome: string; email: string; telefone: string; senha: string }): Promise<{ confirmar: boolean }> {
+  const { data, error } = await supabase.auth.signUp({
     email: dados.email.trim().toLowerCase(),
-    telefone: dados.telefone,
-    rg: "",
-    cpf: "",
-    estadoCivil: "",
-    nascimento: "",
-    cep: "",
-    rua: "",
-    numero: "",
-    complemento: "",
-    bairro: "",
-    cidade: "",
-    uf: "",
-    criadoEm: new Date().toISOString(),
-  };
-  gravar(K_USUARIOS, { ...usuarios(), [u.id]: u });
-  gravar(K_SESSAO, u.id);
-  return u;
+    password: dados.senha,
+    options: { data: { nome: dados.nome.trim(), telefone: dados.telefone, origem: "site", org_id: siteOrgId }, emailRedirectTo: voltaDoEmail() },
+  });
+  if (error) erroLogin(error);
+  // Com confirmação ligada, e-mail já cadastrado volta sem erro e sem identidade.
+  if (data.user && data.user.identities?.length === 0) throw new Error(MENSAGENS_LOGIN["User already registered"]);
+  return { confirmar: !data.session };
 }
 
-/** No protótipo a senha não é conferida nem guardada. */
-export function entrar(email: string): Usuario | null {
-  const u = porEmail(email);
-  if (u) gravar(K_SESSAO, u.id);
-  return u;
+export async function entrar(email: string, senha: string) {
+  const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password: senha });
+  if (error) erroLogin(error);
 }
 
-export function sair() {
-  gravar(K_SESSAO, null);
+export async function esqueciSenha(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: voltaDoEmail() });
+  if (error) erroLogin(error);
 }
 
-export function salvarPerfil(u: Usuario) {
-  gravar(K_USUARIOS, { ...usuarios(), [u.id]: u });
+export async function definirNovaSenha(senha: string) {
+  const { error } = await supabase.auth.updateUser({ password: senha });
+  if (error) erroLogin(error);
+  definir({ novaSenha: false });
+}
+
+export async function sair() {
+  await supabase.auth.signOut();
+}
+
+export async function salvarPerfil(u: Usuario): Promise<Usuario> {
+  const { data, error } = await supabase.from("site_anunciantes").update(paraLinhaUsuario(u)).eq("id", u.id).select("*").single();
+  if (error) falha(error);
+  const salvo = deLinhaUsuario(data as LinhaUsuario);
+  definir({ usuario: salvo });
+  return salvo;
 }
 
 // ---------- Anúncios ----------
 
-function todosAnuncios(): Anuncio[] {
-  return ler(K_ANUNCIOS, []);
-}
-
 export function anunciosDo(usuarioId: string): Anuncio[] {
-  return todosAnuncios()
-    .filter((a) => a.usuarioId === usuarioId)
-    .sort((a, b) => b.atualizadoEm.localeCompare(a.atualizadoEm));
+  return estado.anuncios.filter((a) => a.usuarioId === usuarioId);
 }
 
 export function anuncio(id: string): Anuncio | null {
-  return todosAnuncios().find((a) => a.id === id) ?? null;
+  return estado.anuncios.find((a) => a.id === id) ?? null;
 }
 
+/** Anúncio novo só na memória; o código ANU-0000 vem do banco no primeiro salvamento. */
 export function novoAnuncio(usuarioId: string): Anuncio {
   const agora = new Date().toISOString();
-  const seq = todosAnuncios().length + 1;
   return {
     id: novoId(),
-    codigo: `ANU-${String(seq).padStart(4, "0")}`,
+    codigo: "",
     usuarioId,
     status: "rascunho",
     etapa: 1,
@@ -263,37 +382,54 @@ export function novoAnuncio(usuarioId: string): Anuncio {
   };
 }
 
-export function salvarAnuncio(a: Anuncio) {
-  const lista = todosAnuncios();
-  const atualizado = { ...a, atualizadoEm: new Date().toISOString() };
-  const i = lista.findIndex((x) => x.id === a.id);
-  if (i >= 0) lista[i] = atualizado;
-  else lista.push(atualizado);
-  gravar(K_ANUNCIOS, lista);
-  return atualizado;
+/** Grava etapa e dados. Status e termo só mudam pelas funções abaixo. */
+export async function salvarAnuncio(a: Anuncio): Promise<Anuncio> {
+  const existe = estado.anuncios.some((x) => x.id === a.id);
+  const consulta = existe
+    ? supabase.from("site_anuncios").update({ etapa: a.etapa, dados: dadosDo(a) }).eq("id", a.id)
+    : supabase.from("site_anuncios").insert({ id: a.id, anunciante_id: a.usuarioId, etapa: a.etapa, dados: dadosDo(a) });
+  const { data, error } = await consulta.select("*").single();
+  if (error) falha(error, existe ? undefined : "Não foi possível criar o cadastro agora. Tente de novo.");
+  return guardarAnuncio(deLinhaAnuncio(data as LinhaAnuncio));
 }
 
-export function excluirAnuncio(id: string) {
-  gravar(K_ANUNCIOS, todosAnuncios().filter((a) => a.id !== id));
+async function acao(rpc: string, id: string): Promise<Anuncio> {
+  const { data, error } = await supabase.rpc(rpc, { p_id: id });
+  if (error) falha(error);
+  return guardarAnuncio(deLinhaAnuncio(data as LinhaAnuncio));
 }
 
-export function enviarParaAprovacao(a: Anuncio): Anuncio {
-  const agora = new Date();
-  const validade = new Date(agora.getTime() + validadeTermoDias * 86400000);
-  return salvarAnuncio({
-    ...a,
-    status: "em_aprovacao",
-    etapa: 8,
-    enviadoEm: agora.toISOString(),
-    termo: { versao: VERSAO_TERMO, aceitoEm: agora.toISOString(), validoAte: validade.toISOString() },
-  });
+export async function excluirAnuncio(id: string) {
+  const { error } = await supabase.rpc("site_excluir_anuncio", { p_id: id });
+  if (error) falha(error, "Não foi possível excluir agora. Tente de novo.");
+  definir({ anuncios: estado.anuncios.filter((a) => a.id !== id) });
 }
 
-export function renovarTermo(a: Anuncio): Anuncio {
-  const agora = new Date();
-  const validade = new Date(agora.getTime() + validadeTermoDias * 86400000);
-  return salvarAnuncio({ ...a, termo: { versao: VERSAO_TERMO, aceitoEm: agora.toISOString(), validoAte: validade.toISOString() } });
+/** Salva, aceita o termo e manda para a equipe. No reenvio, atualiza o imóvel no CRM. */
+export async function enviarParaAprovacao(a: Anuncio): Promise<Anuncio> {
+  await salvarAnuncio(a);
+  const primeiraVez = !a.enviadoEm;
+  const enviado = await acao("site_enviar_anuncio", a.id);
+  const u = estado.usuario;
+  if (primeiraVez && u) {
+    // Proprietário com imóvel é lead de captação. Se falhar, o imóvel já está no CRM.
+    enviarLeadAoCrm({
+      origem: "anuncio",
+      nome: u.nome,
+      telefone: u.telefone,
+      email: u.email,
+      imovel_codigo: enviado.codigo,
+      negocio: enviado.negocio === "locacao" ? "administrar" : "vender",
+      bairro: enviado.bairro,
+      pagina: window.location.pathname,
+    }).catch((e) => console.error("[conta] lead do anúncio:", e));
+  }
+  return enviado;
 }
+
+export const renovarTermo = (a: Anuncio) => acao("site_renovar_termo", a.id);
+export const pausarAnuncio = (a: Anuncio) => acao("site_pausar_anuncio", a.id);
+export const reativarAnuncio = (a: Anuncio) => acao("site_reativar_anuncio", a.id);
 
 export type SituacaoTermo = "pendente" | "vigente" | "vencendo" | "vencido";
 
@@ -306,31 +442,20 @@ export function situacaoTermo(a: Anuncio): { situacao: SituacaoTermo; dias: numb
   return { situacao: "vigente", dias };
 }
 
-// ---------- Hook ----------
+// ---------- Hooks ----------
 
-export function useConta() {
-  const [estado, setEstado] = useState(() => ({ usuario: usuarioAtual() }));
-  useEffect(() => {
-    const atualizar = () => setEstado({ usuario: usuarioAtual() });
-    window.addEventListener(EVENTO, atualizar);
-    window.addEventListener("storage", atualizar);
-    return () => {
-      window.removeEventListener(EVENTO, atualizar);
-      window.removeEventListener("storage", atualizar);
-    };
-  }, []);
-  return estado.usuario;
+/** undefined enquanto a sessão carrega; null sem login. */
+export function useConta(): Usuario | null | undefined {
+  return useSyncExternalStore(assinar, () => (estado.pronto ? estado.usuario : undefined));
 }
 
 export function useAnuncios(usuarioId: string | undefined) {
-  const [lista, setLista] = useState<Anuncio[]>(() => (usuarioId ? anunciosDo(usuarioId) : []));
-  useEffect(() => {
-    const atualizar = () => setLista(usuarioId ? anunciosDo(usuarioId) : []);
-    atualizar();
-    window.addEventListener(EVENTO, atualizar);
-    return () => window.removeEventListener(EVENTO, atualizar);
-  }, [usuarioId]);
-  return lista;
+  const todos = useSyncExternalStore(assinar, () => estado.anuncios);
+  return usuarioId ? todos.filter((a) => a.usuarioId === usuarioId) : [];
+}
+
+export function usePrecisaNovaSenha() {
+  return useSyncExternalStore(assinar, () => estado.novaSenha);
 }
 
 export function iniciais(nome: string) {

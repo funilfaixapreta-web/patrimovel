@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Icone } from "../../components/Icone";
 import { validadeTermoDias } from "../../config";
 import { TEXTO_TERMO } from "../../content-anuncio";
-import { renovarTermo, salvarAnuncio, situacaoTermo, useAnuncios, useConta, type Anuncio, type SituacaoTermo } from "../../lib/conta";
+import { renovarTermo, situacaoTermo, useAnuncios, useConta, type Anuncio, type SituacaoTermo } from "../../lib/conta";
 import { useSeo } from "../../lib/seo";
 import { tituloAnuncio } from "./MeusImoveis";
 
@@ -38,7 +38,21 @@ function TextoTermo({ aoFechar, aoAceitar, titulo }: { aoFechar: () => void; aoA
 
 function Linha({ a }: { a: Anuncio }) {
   const [aberto, setAberto] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
   const { situacao, dias } = situacaoTermo(a);
+  async function renovar() {
+    setErro(null);
+    setOcupado(true);
+    try {
+      await renovarTermo(a);
+      setAberto(false);
+    } catch (e) {
+      setErro((e as Error).message);
+    } finally {
+      setOcupado(false);
+    }
+  }
   const s = SITUACAO[situacao];
   const precisa = situacao !== "vigente";
   return (
@@ -52,23 +66,15 @@ function Linha({ a }: { a: Anuncio }) {
         {a.termo && (
           <p className="num mt-0.5 text-[14px] text-ink-muted">Aceito em {data(a.termo.aceitoEm)} · válido até {data(a.termo.validoAte)} · versão {a.termo.versao}</p>
         )}
+        {erro && <p className="mt-2 text-[13.5px] text-brand-700" role="alert">{erro}</p>}
       </div>
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => setAberto(true)} className="btn-contorno px-4 py-2 text-[14px]"><Icone nome="documento" className="h-4 w-4" /> Ler termo</button>
-        {precisa ? (
-          <button type="button" onClick={() => renovarTermo(a)} className="btn-primario px-4 py-2 text-[14px]">{situacao === "pendente" ? "Aceitar" : "Renovar"}</button>
-        ) : (
-          <button
-            type="button"
-            title="Só no protótipo"
-            onClick={() => a.termo && salvarAnuncio({ ...a, termo: { ...a.termo, validoAte: new Date(Date.now() + 10 * 86400000).toISOString() } })}
-            className="rounded-full border border-dashed border-ink/25 px-4 py-2 text-[13px] text-ink-muted hover:border-ink/50"
-          >
-            Simular vencimento
-          </button>
+        {precisa && (
+          <button type="button" disabled={ocupado} onClick={renovar} className="btn-primario px-4 py-2 text-[14px] disabled:opacity-50">{situacao === "pendente" ? "Aceitar" : "Renovar"}</button>
         )}
       </div>
-      {aberto && <TextoTermo titulo={tituloAnuncio(a)} aoFechar={() => setAberto(false)} aoAceitar={precisa ? () => { renovarTermo(a); setAberto(false); } : undefined} />}
+      {aberto && <TextoTermo titulo={tituloAnuncio(a)} aoFechar={() => setAberto(false)} aoAceitar={precisa ? renovar : undefined} />}
     </li>
   );
 }

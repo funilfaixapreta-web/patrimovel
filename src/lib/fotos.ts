@@ -1,32 +1,24 @@
-import { useEffect, useState } from "react";
+import { supabase } from "./supabase";
+import type { FotoAnuncio } from "./conta";
 
-// PROTÓTIPO: fotos dos anúncios guardadas no IndexedDB do navegador.
+// Fotos dos anúncios no bucket público site-anuncios do Supabase, em
+// <usuario>/<anuncio>/<foto>.jpg. A URL pública vai para o imóvel do CRM e
+// para a vitrine depois da aprovação.
 
-const BANCO = "padm-proto";
-const LOJA = "fotos";
+const BUCKET = "site-anuncios";
 
-function abrir(): Promise<IDBDatabase> {
-  return new Promise((ok, erro) => {
-    const r = indexedDB.open(BANCO, 1);
-    r.onupgradeneeded = () => r.result.createObjectStore(LOJA);
-    r.onsuccess = () => ok(r.result);
-    r.onerror = () => erro(r.error);
-  });
+export async function salvarFoto(usuarioId: string, anuncioId: string, id: string, nome: string, blob: Blob): Promise<FotoAnuncio> {
+  const caminho = `${usuarioId}/${anuncioId}/${id}.jpg`;
+  const { error } = await supabase.storage.from(BUCKET).upload(caminho, blob, { contentType: "image/jpeg", cacheControl: "31536000", upsert: false });
+  if (error) throw new Error(`${nome}: não foi possível enviar a foto. Tente de novo.`);
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(caminho);
+  return { id, nome, caminho, url: data.publicUrl };
 }
 
-async function operar<T>(modo: IDBTransactionMode, fazer: (loja: IDBObjectStore) => IDBRequest): Promise<T> {
-  const db = await abrir();
-  return new Promise((ok, erro) => {
-    const tx = db.transaction(LOJA, modo);
-    const r = fazer(tx.objectStore(LOJA));
-    r.onsuccess = () => ok(r.result as T);
-    r.onerror = () => erro(r.error);
-  });
+export async function apagarFotos(fotos: FotoAnuncio[]) {
+  const caminhos = fotos.map((f) => f.caminho).filter(Boolean);
+  if (caminhos.length) await supabase.storage.from(BUCKET).remove(caminhos);
 }
-
-export const salvarFoto = (id: string, blob: Blob) => operar<IDBValidKey>("readwrite", (l) => l.put(blob, id));
-export const lerFoto = (id: string) => operar<Blob | undefined>("readonly", (l) => l.get(id));
-export const apagarFoto = (id: string) => operar<undefined>("readwrite", (l) => l.delete(id));
 
 export const FORMATOS_ACEITOS = ["image/jpeg", "image/png", "image/webp"];
 export const TAMANHO_MAX_MB = 20;
@@ -45,25 +37,7 @@ export async function prepararFoto(arquivo: File): Promise<Blob> {
   return new Promise((ok, erro) => canvas.toBlob((b) => (b ? ok(b) : erro(new Error("Não foi possível ler a foto."))), "image/jpeg", 0.84));
 }
 
-/** URL temporária para mostrar uma foto guardada. */
-export function useFotoUrl(id: string | undefined) {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (!id) return;
-    let ativo = true;
-    let criada: string | null = null;
-    lerFoto(id)
-      .then((b) => {
-        if (b && ativo) {
-          criada = URL.createObjectURL(b);
-          setUrl(criada);
-        }
-      })
-      .catch(() => undefined);
-    return () => {
-      ativo = false;
-      if (criada) URL.revokeObjectURL(criada);
-    };
-  }, [id]);
-  return url;
+/** URL para mostrar a foto. Cadastros antigos do protótipo não têm URL. */
+export function useFotoUrl(foto: FotoAnuncio | undefined) {
+  return foto?.url ?? null;
 }

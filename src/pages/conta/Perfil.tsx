@@ -10,9 +10,11 @@ import { useSeo } from "../../lib/seo";
 export default function Perfil() {
   useSeo("Meu perfil");
   const usuario = useConta();
-  const [f, setF] = useState<Usuario | null>(usuario);
+  const [f, setF] = useState<Usuario | null>(usuario ?? null);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [salvo, setSalvo] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [erroGeral, setErroGeral] = useState<string | null>(null);
   const [buscandoCep, setBuscandoCep] = useState(false);
 
   useEffect(() => {
@@ -42,7 +44,7 @@ export default function Perfil() {
     }
   }
 
-  function salvar(e: FormEvent) {
+  async function salvar(e: FormEvent) {
     e.preventDefault();
     if (!f) return;
     const er: Record<string, string> = {};
@@ -52,8 +54,16 @@ export default function Perfil() {
     if (f.nascimento && new Date(f.nascimento) > new Date()) er.nascimento = "A data não pode ser no futuro.";
     setErros(er);
     if (Object.keys(er).length) return;
-    salvarPerfil(f);
-    setSalvo(true);
+    setErroGeral(null);
+    setSalvando(true);
+    try {
+      setF(await salvarPerfil(f));
+      setSalvo(true);
+    } catch (err) {
+      setErroGeral((err as Error).message);
+    } finally {
+      setSalvando(false);
+    }
   }
 
   return (
@@ -90,7 +100,8 @@ export default function Perfil() {
       </section>
 
       <div className="flex flex-wrap items-center gap-4">
-        <button type="submit" className="btn-primario px-8">Salvar alterações</button>
+        <button type="submit" disabled={salvando} className="btn-primario px-8 disabled:opacity-60">{salvando ? "Salvando..." : "Salvar alterações"}</button>
+        {erroGeral && <p className="text-[15px] text-brand-700" role="alert">{erroGeral}</p>}
         {salvo && <p className="inline-flex items-center gap-1.5 text-[15px] font-medium text-[#1d7a46]" role="status"><Icone nome="check" className="h-5 w-5" /> Dados salvos</p>}
       </div>
     </form>
