@@ -65,7 +65,7 @@ Tudo roda no projeto Supabase do CRM (`tdjvryuublqixpzqnzvs`). Os arquivos ficam
 ## Dados
 
 - `VITE_VITRINE_URL`: endpoint `imoveis-vitrine` do CRM. Só mostra imóveis disponíveis marcados como **Site**.
-- Hoje a vitrine volta vazia, porque nenhum imóvel está marcado como Site no CRM. Com `VITE_VITRINE_FALLBACK=true`, o site usa `public/data/vitrine-exemplo.json`: os 131 anúncios públicos da Arbo em 20/10/2026, convertidos com a mesma regra do CRM (sem endereço). **No ar, use `false`.**
+- Desde 23/10/2026 os imóveis disponíveis da Arbo entram no site sozinhos (gatilho `trg_imoveis_zz_arbo_no_site`); a equipe tira um imóvel do site desmarcando **Site** no CRM. Com `VITE_VITRINE_FALLBACK=true`, uma vitrine vazia cai em `public/data/vitrine-exemplo.json` (131 anúncios da Arbo em 20/10/2026, sem endereço). **No ar, use `false`** (já está assim na Vercel).
 - `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` e `VITE_SITE_ORG_ID`: projeto e org do CRM. Já têm padrão no código (`src/config.ts`); a chave é a publicável.
 - Formulários: com `VITE_LEADS_URL` vazio, vão para o `site-leads` do CRM. Com `VITE_LEADS_URL=whatsapp`, abrem o WhatsApp com a mensagem pronta. O POST é em JSON (`origem`, `nome`, `telefone`, `email`, `mensagem`, `imovel_codigo`, `negocio`, `bairro`, `data_visita`, `periodo_visita`, `pagina`).
 - `VITE_GTM_ID`: carrega o GTM só depois do aceite no aviso de cookies. Os eventos vão para o `dataLayer`: `generate_lead`, `whatsapp_click`, `phone_click` e `page_view_spa`.
