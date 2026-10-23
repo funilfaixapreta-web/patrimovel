@@ -1,7 +1,7 @@
 import { useRef, useState, type DragEvent } from "react";
 import { Icone } from "../../components/Icone";
 import { novoId, type FotoAnuncio } from "../../lib/conta";
-import { apagarFoto, prepararFoto, salvarFoto, TAMANHO_MAX_MB, useFotoUrl } from "../../lib/fotos";
+import { apagarFotos, prepararFoto, salvarFoto, TAMANHO_MAX_MB, useFotoUrl } from "../../lib/fotos";
 
 const MAX_FOTOS = 40;
 
@@ -14,7 +14,7 @@ function Miniatura({ f, posicao, total, selecionada, aoSelecionar, aoMover, aoCa
   aoMover: (d: -1 | 1) => void;
   aoCapa: () => void;
 }) {
-  const url = useFotoUrl(f.id);
+  const url = useFotoUrl(f);
   return (
     <li className={`group relative overflow-hidden rounded-xl border-2 bg-sand-100 ${selecionada ? "border-brand-600" : "border-transparent"}`}>
       <div className="aspect-[4/3]">{url && <img src={url} alt={`Foto ${posicao + 1}: ${f.nome}`} className="h-full w-full object-cover" />}</div>
@@ -39,7 +39,7 @@ function Miniatura({ f, posicao, total, selecionada, aoSelecionar, aoMover, aoCa
   );
 }
 
-export function EtapaFotos({ fotos, aoMudar }: { fotos: FotoAnuncio[]; aoMudar: (f: FotoAnuncio[]) => void }) {
+export function EtapaFotos({ usuarioId, anuncioId, fotos, aoMudar }: { usuarioId: string; anuncioId: string; fotos: FotoAnuncio[]; aoMudar: (f: FotoAnuncio[]) => void }) {
   const entrada = useRef<HTMLInputElement>(null);
   const [selecionadas, setSelecionadas] = useState<string[]>([]);
   const [processando, setProcessando] = useState<{ feitas: number; total: number } | null>(null);
@@ -58,9 +58,7 @@ export function EtapaFotos({ fotos, aoMudar }: { fotos: FotoAnuncio[]; aoMudar: 
     for (const [k, arq] of arquivos.entries()) {
       try {
         const blob = await prepararFoto(arq);
-        const id = novoId();
-        await salvarFoto(id, blob);
-        novas.push({ id, nome: arq.name });
+        novas.push(await salvarFoto(usuarioId, anuncioId, novoId(), arq.name, blob));
       } catch (e) {
         falhas.push((e as Error).message);
       }
@@ -84,8 +82,10 @@ export function EtapaFotos({ fotos, aoMudar }: { fotos: FotoAnuncio[]; aoMudar: 
   }
 
   async function excluirSelecionadas() {
-    await Promise.all(selecionadas.map((id) => apagarFoto(id).catch(() => undefined)));
-    aoMudar(fotos.filter((f) => !selecionadas.includes(f.id)));
+    const restantes = fotos.filter((f) => !selecionadas.includes(f.id));
+    aoMudar(restantes);
+    // Só apaga do armazenamento depois que o cadastro deixa de apontar para a foto.
+    await apagarFotos(fotos.filter((f) => selecionadas.includes(f.id))).catch(() => undefined);
     setSelecionadas([]);
   }
 

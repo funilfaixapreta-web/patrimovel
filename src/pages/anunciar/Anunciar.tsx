@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
-import { AvisoPrototipo, CampoDinheiro, CampoNumero, CampoSelect, CampoTexto, Contador, Escolhas, Marcar, Rotulo } from "../../components/Campos";
+import { CampoDinheiro, CampoNumero, CampoSelect, CampoTexto, Contador, Escolhas, Marcar, Rotulo } from "../../components/Campos";
 import { Icone } from "../../components/Icone";
 import { Logo } from "../../components/Layout";
 import { validadeTermoDias } from "../../config";
@@ -391,6 +391,8 @@ export default function Anunciar() {
   const [erros, setErros] = useState<Erros>({});
   const [aceite, setAceite] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [erroGeral, setErroGeral] = useState<string | null>(null);
   const topo = useRef<HTMLDivElement>(null);
   useSeo(enviado ? "Imóvel enviado" : `Anunciar imóvel: ${ETAPAS[etapa - 1].nome}`);
 
@@ -408,6 +410,7 @@ export default function Anunciar() {
 
   const progresso = useMemo(() => (a ? Math.max(a.etapa, etapa) : 1), [a, etapa]);
 
+  if (usuario === undefined) return null;
   if (!usuario) return <Navigate to={`/entrar?volta=${encodeURIComponent(local.pathname)}&aba=criar`} replace />;
   if (naoAchou) return <NaoEncontrado mensagem="Este cadastro não existe ou é de outra conta." />;
   if (!a) return null;
@@ -420,12 +423,24 @@ export default function Anunciar() {
       return n;
     });
   };
-  const persistir = (x: Anuncio, proxima: number) => {
-    const salvo = salvarAnuncio({ ...x, etapa: x.status === "rascunho" ? Math.max(x.etapa, proxima) : x.etapa });
-    setA(salvo);
+  const persistir = async (x: Anuncio, proxima: number) => {
+    const salvo = await salvarAnuncio({ ...x, etapa: x.status === "rascunho" ? Math.max(x.etapa, proxima) : x.etapa });
+    // Mantém o que a pessoa digitou enquanto salvava; do banco vêm só código, status e datas.
+    setA((atual) => (atual ? { ...atual, codigo: salvo.codigo, status: salvo.status, etapa: salvo.etapa, atualizadoEm: salvo.atualizadoEm } : salvo));
     if (!id) navegar(`/anunciar/${salvo.id}`, { replace: true });
     return salvo;
   };
+  async function comSalvando(f: () => Promise<void>) {
+    setErroGeral(null);
+    setSalvando(true);
+    try {
+      await f();
+    } catch (e) {
+      setErroGeral((e as Error).message);
+    } finally {
+      setSalvando(false);
+    }
+  }
   const rolar = () => topo.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   const irPara = (n: number) => {
     setErros({});
@@ -434,36 +449,47 @@ export default function Anunciar() {
   };
 
   function proximo() {
-    if (!a) return;
+    if (!a || salvando) return;
     const er = validar(etapa, a, aceite);
     setErros(er);
     if (Object.keys(er).length) {
       requestAnimationFrame(() => document.querySelector<HTMLElement>("[aria-invalid='true'], .text-brand-700")?.scrollIntoView({ behavior: "smooth", block: "center" }));
       return;
     }
-    if (etapa < ETAPAS.length) {
-      persistir(a, etapa + 1);
-      irPara(etapa + 1);
-      return;
-    }
-    if (a.status === "rascunho") {
-      setA(enviarParaAprovacao(a));
-      setEnviado(true);
-      window.scrollTo(0, 0);
-    } else {
-      salvarAnuncio(a);
-      navegar("/conta/imoveis");
-    }
+    void comSalvando(async () => {
+      if (etapa < ETAPAS.length) {
+        await persistir(a, etapa + 1);
+        irPara(etapa + 1);
+        return;
+      }
+      // Primeiro envio e reenvio (em aprovação ou recusado) passam pela equipe de novo.
+      const primeiro = a.status === "rascunho";
+      setA(await enviarParaAprovacao(a));
+      if (primeiro) {
+        setEnviado(true);
+        window.scrollTo(0, 0);
+      } else {
+        navegar("/conta/imoveis");
+      }
+    });
   }
 
   function voltar() {
-    if (a && (id || a.finalidade)) persistir(a, etapa);
-    irPara(etapa - 1);
+    if (!a || salvando) return;
+    if (!(id || a.finalidade)) return irPara(etapa - 1);
+    void comSalvando(async () => {
+      await persistir(a, etapa);
+      irPara(etapa - 1);
+    });
   }
 
   function sairSalvando() {
-    if (a && (id || a.finalidade)) persistir(a, etapa);
-    navegar("/conta/imoveis");
+    if (!a || salvando) return;
+    if (!(id || a.finalidade)) return navegar("/conta/imoveis");
+    void comSalvando(async () => {
+      await persistir(a, etapa);
+      navegar("/conta/imoveis");
+    });
   }
 
   const passo = ETAPAS[etapa - 1];
@@ -536,25 +562,36 @@ export default function Anunciar() {
           </ol>
         </aside>
         <main className="min-w-0">
-          {etapa === 1 && <AvisoPrototipo className="mb-6" />}
           {etapa === 1 && <Etapa1 a={a} mudar={mudar} erros={erros} />}
           {etapa === 2 && <Etapa2 a={a} mudar={mudar} erros={erros} />}
           {etapa === 3 && <Etapa3 a={a} mudar={mudar} erros={erros} />}
           {etapa === 4 && <Etapa4 a={a} mudar={mudar} erros={erros} />}
           {etapa === 5 && <Etapa5 a={a} mudar={mudar} />}
-          {etapa === 6 && <EtapaFotos fotos={a.fotos} aoMudar={(fotos) => { const x = { ...a, fotos }; setA(x); persistir(x, etapa); }} />}
+          {etapa === 6 && (
+            <EtapaFotos
+              usuarioId={usuario.id}
+              anuncioId={a.id}
+              fotos={a.fotos}
+              aoMudar={(fotos) => {
+                const x = { ...a, fotos };
+                setA(x);
+                persistir(x, etapa).catch((e) => setErroGeral((e as Error).message));
+              }}
+            />
+          )}
           {etapa === 7 && <Etapa7 a={a} mudar={mudar} erros={erros} />}
           {etapa === 8 && <Etapa8 a={a} mudar={mudar} erros={erros} aceite={aceite} setAceite={setAceite} irPara={irPara} />}
         </main>
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-sand-200 bg-white" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        {erroGeral && <p className="container-site pt-3 text-[14px] text-brand-700" role="alert">{erroGeral}</p>}
         <div className="container-site flex items-center justify-between gap-3 py-3">
           <button type="button" onClick={sairSalvando} className="text-[15px] font-semibold text-ink-soft underline underline-offset-2 hover:text-ink">Sair</button>
           <div className="flex gap-2">
             {etapa > 1 && <button type="button" onClick={voltar} className="btn-contorno px-6">Voltar</button>}
-            <button type="button" onClick={proximo} className="btn-primario px-7">
-              {etapa < ETAPAS.length ? "Próximo" : a.status === "rascunho" ? "Enviar para aprovação" : "Salvar alterações"}
+            <button type="button" onClick={proximo} disabled={salvando} className="btn-primario px-7 disabled:opacity-60">
+              {salvando ? "Salvando..." : etapa < ETAPAS.length ? "Próximo" : a.status === "rascunho" ? "Enviar para aprovação" : a.status === "recusado" ? "Enviar de novo" : "Salvar e reenviar"}
             </button>
           </div>
         </div>

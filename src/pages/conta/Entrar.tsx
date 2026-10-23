@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
-import { AvisoPrototipo, CampoTexto } from "../../components/Campos";
-import { criarConta, entrar, porEmail, useConta } from "../../lib/conta";
+import { CampoTexto } from "../../components/Campos";
+import { criarConta, definirNovaSenha, entrar, esqueciSenha, useConta, usePrecisaNovaSenha } from "../../lib/conta";
 import { mascaraTelefone, telefoneValido } from "../../lib/leads";
 import { useSeo } from "../../lib/seo";
 
@@ -13,6 +13,7 @@ export default function Entrar() {
   const volta = params.get("volta") || "/conta/imoveis";
   const navegar = useNavigate();
   const usuario = useConta();
+  const novaSenha = usePrecisaNovaSenha();
   const [aba, setAba] = useState<"entrar" | "criar">(params.get("aba") === "criar" ? "criar" : "entrar");
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -21,12 +22,60 @@ export default function Entrar() {
   const [aceite, setAceite] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [aviso, setAviso] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
 
-  if (usuario) return <Navigate to={volta} replace />;
+  if (usuario && !novaSenha) return <Navigate to={volta} replace />;
 
-  function enviar(e: FormEvent) {
+  async function tentar(f: () => Promise<void>) {
+    setAviso(null);
+    setOk(null);
+    setEnviando(true);
+    try {
+      await f();
+    } catch (err) {
+      setAviso((err as Error).message);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function esqueci() {
+    if (!emailOk(email)) return setErros({ email: "Escreva o e-mail da conta para receber o link." });
+    setErros({});
+    await tentar(async () => {
+      await esqueciSenha(email);
+      setOk("Se existir conta com este e-mail, enviamos um link para criar uma senha nova. Confira também o spam.");
+    });
+  }
+
+  async function salvarNovaSenha(e: FormEvent) {
+    e.preventDefault();
+    if (senha.length < 6) return setErros({ senha: "A senha precisa ter pelo menos 6 caracteres." });
+    setErros({});
+    await tentar(async () => {
+      await definirNovaSenha(senha);
+      navegar(volta, { replace: true });
+    });
+  }
+
+  if (novaSenha) {
+    return (
+      <div className="container-site grid place-items-center pt-10 md:pt-14">
+        <form onSubmit={salvarNovaSenha} noValidate className="grid w-full max-w-[440px] gap-4 rounded-3xl border border-sand-200 bg-white p-6 shadow-card md:p-8">
+          <h1 className="text-[24px] font-bold">Crie uma senha nova</h1>
+          <CampoTexto rotulo="Senha nova" valor={senha} aoMudar={setSenha} type="password" autoComplete="new-password" erro={erros.senha} />
+          {aviso && <p className="rounded-xl bg-brand-50 px-4 py-3 text-[14px] text-brand-800" role="alert">{aviso}</p>}
+          <button type="submit" disabled={enviando} className="btn-primario w-full py-3.5 text-[16px] disabled:opacity-60">{enviando ? "Salvando..." : "Salvar senha"}</button>
+        </form>
+      </div>
+    );
+  }
+
+  async function enviar(e: FormEvent) {
     e.preventDefault();
     setAviso(null);
+    setOk(null);
     const er: Record<string, string> = {};
     if (!emailOk(email)) er.email = "Confira o e-mail.";
     if (senha.length < 6) er.senha = "A senha precisa ter pelo menos 6 caracteres.";
@@ -34,21 +83,21 @@ export default function Entrar() {
       if (nome.trim().split(/\s+/).length < 2) er.nome = "Escreva nome e sobrenome.";
       if (!telefoneValido(telefone)) er.telefone = "Informe o celular com DDD.";
       if (!aceite) er.aceite = "Para criar a conta, aceite os termos de uso.";
-      if (!er.email && porEmail(email)) er.email = "Já existe uma conta com este e-mail. Entre por aqui.";
     }
     setErros(er);
     if (Object.keys(er).length) return;
-    if (aba === "entrar") {
-      const u = entrar(email);
-      if (!u) {
-        setErros({ email: "Não encontramos uma conta com este e-mail." });
-        setAviso("Ainda não tem conta? Toque em Criar conta.");
+    await tentar(async () => {
+      if (aba === "entrar") {
+        await entrar(email, senha);
         return;
       }
-    } else {
-      criarConta({ nome, email, telefone });
-    }
-    navegar(volta, { replace: true });
+      const { confirmar } = await criarConta({ nome, email, telefone, senha });
+      if (confirmar) {
+        setOk(`Conta criada. Enviamos um link para ${email.trim().toLowerCase()}: abra o e-mail para confirmar e depois entre por aqui.`);
+        setAba("entrar");
+        setSenha("");
+      }
+    });
   }
 
   return (
@@ -91,14 +140,16 @@ export default function Entrar() {
             </div>
           )}
           {aviso && <p className="rounded-xl bg-brand-50 px-4 py-3 text-[14px] text-brand-800" role="alert">{aviso}</p>}
-          <button type="submit" className="btn-primario w-full py-3.5 text-[16px]">{aba === "entrar" ? "Entrar" : "Criar conta"}</button>
+          {ok && <p className="rounded-xl bg-[#e3f4ea] px-4 py-3 text-[14px] text-[#1d7a46]" role="status">{ok}</p>}
+          <button type="submit" disabled={enviando} className="btn-primario w-full py-3.5 text-[16px] disabled:opacity-60">
+            {enviando ? "Aguarde..." : aba === "entrar" ? "Entrar" : "Criar conta"}
+          </button>
           {aba === "entrar" && (
-            <button type="button" onClick={() => setAviso("No site final, enviaremos um link para o seu e-mail criar uma senha nova.")} className="text-[14px] font-semibold text-ink-soft underline underline-offset-2">
+            <button type="button" disabled={enviando} onClick={esqueci} className="text-[14px] font-semibold text-ink-soft underline underline-offset-2">
               Esqueci minha senha
             </button>
           )}
         </form>
-        <AvisoPrototipo className="mt-6" />
       </div>
     </div>
   );

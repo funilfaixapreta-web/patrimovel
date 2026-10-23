@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Icone } from "../../components/Icone";
 import { ETAPAS } from "../../content-anuncio";
-import { excluirAnuncio, salvarAnuncio, useAnuncios, useConta, type Anuncio, type StatusAnuncio } from "../../lib/conta";
-import { apagarFoto, useFotoUrl } from "../../lib/fotos";
+import { excluirAnuncio, pausarAnuncio, reativarAnuncio, useAnuncios, useConta, type Anuncio, type StatusAnuncio } from "../../lib/conta";
+import { apagarFotos, useFotoUrl } from "../../lib/fotos";
 import { useSeo } from "../../lib/seo";
 import { formatarPreco } from "../../lib/vitrine";
 
@@ -22,7 +22,7 @@ export function tituloAnuncio(a: Anuncio) {
 }
 
 function Capa({ a }: { a: Anuncio }) {
-  const url = useFotoUrl(a.fotos[0]?.id);
+  const url = useFotoUrl(a.fotos[0]);
   return (
     <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-xl bg-sand-100 sm:w-48">
       {url ? <img src={url} alt="" className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-ink-muted"><Icone nome="foto" className="h-7 w-7" /></div>}
@@ -32,12 +32,27 @@ function Capa({ a }: { a: Anuncio }) {
 
 function CartaoAnuncio({ a }: { a: Anuncio }) {
   const [confirmar, setConfirmar] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
   const st = STATUS[a.status];
   const editar = a.status === "rascunho" || a.status === "em_aprovacao" || a.status === "recusado";
-  async function excluir() {
-    await Promise.all(a.fotos.map((f) => apagarFoto(f.id).catch(() => undefined)));
-    excluirAnuncio(a.id);
+  async function fazer(f: () => Promise<unknown>) {
+    setErro(null);
+    setOcupado(true);
+    try {
+      await f();
+    } catch (e) {
+      setErro((e as Error).message);
+    } finally {
+      setOcupado(false);
+    }
   }
+  const excluir = () =>
+    fazer(async () => {
+      await excluirAnuncio(a.id);
+      // Rascunho nunca foi ao CRM: as fotos podem sair. Enviado, o imóvel do CRM ainda aponta para elas.
+      if (a.status === "rascunho") await apagarFotos(a.fotos).catch(() => undefined);
+    });
   return (
     <li className="flex flex-col gap-4 rounded-2xl border border-sand-200 p-4 sm:flex-row">
       <Capa a={a} />
@@ -60,7 +75,13 @@ function CartaoAnuncio({ a }: { a: Anuncio }) {
             <p className="num mt-1.5 text-[13px] text-ink-muted">Parou na etapa {a.etapa} de {ETAPAS.length}: {ETAPAS[a.etapa - 1]?.nome}</p>
           </div>
         )}
-        {a.status === "em_aprovacao" && <p className="text-[13.5px] text-ink-muted">Nossa equipe confere os dados e as fotos antes de publicar. Você recebe um aviso pelo WhatsApp.</p>}
+        {a.status === "em_aprovacao" && <p className="text-[13.5px] text-ink-muted">Nossa equipe confere os dados e as fotos antes de publicar. Você vê aqui quando o anúncio entrar no ar.</p>}
+        {a.status === "recusado" && <p className="text-[13.5px] text-ink-muted">Nossa equipe não aprovou este cadastro. Confira os dados e as fotos e envie de novo, ou fale com o atendimento.</p>}
+        {a.status === "pausado" && a.pausadoPor === "equipe" && <p className="text-[13.5px] text-ink-muted">Pausado pela nossa equipe. Fale com o atendimento para voltar ao ar.</p>}
+        {a.status === "pausado" && a.pausadoPor === "termo" && (
+          <p className="text-[13.5px] text-ink-muted">Saiu do ar porque a autorização de divulgação venceu. <Link to="/conta/termos" className="font-semibold underline">Renove o termo</Link> para voltar.</p>
+        )}
+        {erro && <p className="rounded-xl bg-brand-50 px-3 py-2 text-[13.5px] text-brand-800" role="alert">{erro}</p>}
         <div className="mt-auto flex flex-wrap gap-2 pt-2">
           {editar && (
             <Link to={`/anunciar/${a.id}`} className="btn-contorno px-4 py-2 text-[14px]">
@@ -68,18 +89,13 @@ function CartaoAnuncio({ a }: { a: Anuncio }) {
             </Link>
           )}
           {a.status === "ativo" && (
-            <button type="button" onClick={() => salvarAnuncio({ ...a, status: "pausado" })} className="btn-contorno px-4 py-2 text-[14px]">
+            <button type="button" disabled={ocupado} onClick={() => fazer(() => pausarAnuncio(a))} className="btn-contorno px-4 py-2 text-[14px] disabled:opacity-50">
               <Icone nome="pausa" className="h-4 w-4" /> Pausar anúncio
             </button>
           )}
-          {a.status === "pausado" && (
-            <button type="button" onClick={() => salvarAnuncio({ ...a, status: "ativo" })} className="btn-contorno px-4 py-2 text-[14px]">
+          {a.status === "pausado" && a.pausadoPor === "anunciante" && (
+            <button type="button" disabled={ocupado} onClick={() => fazer(() => reativarAnuncio(a))} className="btn-contorno px-4 py-2 text-[14px] disabled:opacity-50">
               <Icone nome="play" className="h-4 w-4" /> Reativar
-            </button>
-          )}
-          {a.status === "em_aprovacao" && (
-            <button type="button" onClick={() => salvarAnuncio({ ...a, status: "ativo" })} className="rounded-full border border-dashed border-ink/25 px-4 py-2 text-[13px] text-ink-muted hover:border-ink/50" title="Só no protótipo">
-              Simular aprovação
             </button>
           )}
           {!confirmar ? (
@@ -89,7 +105,7 @@ function CartaoAnuncio({ a }: { a: Anuncio }) {
           ) : (
             <span className="inline-flex flex-wrap items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-[13.5px] text-brand-800">
               Excluir este imóvel?
-              <button type="button" onClick={excluir} className="font-semibold underline">Sim, excluir</button>
+              <button type="button" disabled={ocupado} onClick={excluir} className="font-semibold underline">Sim, excluir</button>
               <button type="button" onClick={() => setConfirmar(false)} className="underline">Cancelar</button>
             </span>
           )}

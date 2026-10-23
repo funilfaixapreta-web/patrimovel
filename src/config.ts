@@ -35,9 +35,14 @@ export const taxaAdministracao: number | null = null;
 export const validadeTermoDias = 180;
 
 const env = import.meta.env;
-export const vitrineUrl: string =
-  env.VITE_VITRINE_URL ||
-  "https://tdjvryuublqixpzqnzvs.supabase.co/functions/v1/imoveis-vitrine?org=284ccccb-2ea3-464b-a89f-8185b732b38f";
+// Backend: o mesmo projeto Supabase do CRM. A chave é a publicável (pode ir no navegador).
+export const supabaseUrl: string = env.VITE_SUPABASE_URL || "https://tdjvryuublqixpzqnzvs.supabase.co";
+export const supabaseChave: string = env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_S5STiA4L0s84ZbRkxaikcQ_DzBsgl8m";
+// Org da Patrimóvel ADM no CRM: dona das contas de anunciante, dos anúncios e dos leads do site.
+export const siteOrgId: string = env.VITE_SITE_ORG_ID || "284ccccb-2ea3-464b-a89f-8185b732b38f";
+export const vitrineUrl: string = env.VITE_VITRINE_URL || `${supabaseUrl}/functions/v1/imoveis-vitrine?org=${siteOrgId}`;
 export const usarExemplo: boolean = env.VITE_VITRINE_FALLBACK === "true" || (env.DEV && env.VITE_VITRINE_FALLBACK !== "false");
-export const leadsUrl: string = env.VITE_LEADS_URL || "";
+// "whatsapp" desliga o envio ao CRM e volta a abrir o WhatsApp com a mensagem pronta.
+export const leadsUrl: string =
+  env.VITE_LEADS_URL === "whatsapp" ? "" : env.VITE_LEADS_URL || `${supabaseUrl}/functions/v1/site-leads?org=${siteOrgId}`;
 export const gtmId: string = env.VITE_GTM_ID || "";

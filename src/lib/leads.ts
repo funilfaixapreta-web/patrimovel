@@ -6,7 +6,8 @@ export type OrigemLead =
   | "administracao"
   | "vender"
   | "contato"
-  | "home_proprietario";
+  | "home_proprietario"
+  | "anuncio";
 
 export interface Lead {
   origem: OrigemLead;
@@ -50,20 +51,24 @@ function mensagemDoLead(l: Lead): string {
   return linhas.join(" ");
 }
 
+/** POST no site-leads do CRM (supabase/functions/site-leads). */
+export async function enviarLeadAoCrm(l: Lead) {
+  const r = await fetch(leadsUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...l, enviado_em: new Date().toISOString() }),
+  });
+  if (!r.ok) throw new Error(`Falha ao enviar (${r.status})`);
+}
+
 /**
- * Envia o formulário. Com VITE_LEADS_URL configurada, faz POST em JSON.
- * Sem ela, abre o WhatsApp da administradora com a mensagem pronta, para o
- * lead nunca se perder enquanto o endpoint do site não existe.
+ * Envia o formulário para o CRM. Com VITE_LEADS_URL=whatsapp, abre o WhatsApp
+ * da administradora com a mensagem pronta no lugar.
  */
 export async function enviarLead(l: Lead): Promise<{ via: "api" | "whatsapp" }> {
   rastrear("generate_lead", { lead_origem: l.origem, imovel_codigo: l.imovel_codigo, negocio: l.negocio });
   if (leadsUrl) {
-    const r = await fetch(leadsUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...l, enviado_em: new Date().toISOString() }),
-    });
-    if (!r.ok) throw new Error(`Falha ao enviar (${r.status})`);
+    await enviarLeadAoCrm(l);
     return { via: "api" };
   }
   window.open(linkWhatsApp(mensagemDoLead(l)), "_blank", "noopener");
