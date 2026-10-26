@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, RouterProvider, useParams } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { destinoDaListaAntiga } from "./lib/rotasAntigas";
 import Home from "./pages/Home";
 
 const Busca = lazy(() => import("./pages/Busca"));
@@ -35,6 +36,12 @@ function ImovelAntigo() {
   return <Navigate to={`/imovel/${codigo}`} replace />;
 }
 
+/** Listagens antigas da Arbo: /imoveis/[para-alugar|a-venda]/[tipo]/{bairro-cidade-uf} */
+function ListaAntiga() {
+  const { "*": resto = "" } = useParams();
+  return <Navigate to={destinoDaListaAntiga(resto)} replace />;
+}
+
 const router = createBrowserRouter([
   {
     element: <Layout />,
@@ -46,8 +53,9 @@ const router = createBrowserRouter([
       { path: "/comprar/:bairro", element: <Carregar><Busca key="comprar" negocio="comprar" /></Carregar> },
       { path: "/imovel/:codigo", element: <Carregar><Imovel /></Carregar> },
       { path: "/imovel/*", element: <ImovelAntigo /> },
-      { path: "/imoveis/para-alugar/*", element: <Navigate to="/alugar" replace /> },
-      { path: "/imoveis/a-venda/*", element: <Navigate to="/comprar" replace /> },
+      { path: "/imoveis/*", element: <ListaAntiga /> },
+      { path: "/anunciar-imovel", element: <Navigate to="/anunciar" replace /> },
+      { path: "/conheca/*", element: <Navigate to="/sobre" replace /> },
       { path: "/administracao", element: <Carregar><Administracao /></Carregar> },
       { path: "/vender", element: <Carregar><Vender /></Carregar> },
       { path: "/bairros", element: <Carregar><ListaBairros /></Carregar> },
