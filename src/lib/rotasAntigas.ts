@@ -34,3 +34,24 @@ export function destinoDaListaAntiga(resto: string): string {
   if (!negocio) return bairro ? `/bairros/${bairro}` : "/alugar";
   return `/${negocio}${bairro ? `/${bairro}` : ""}${tipo ? `?tipo=${encodeURIComponent(tipo)}` : ""}`;
 }
+
+const CODIGO_IMOVEL = /\b([a-z]{2,3}\d{3,5}(?:_[a-z]+)?)\b/i;
+const INICIO = new Set(["/index.html", "/index.htm", "/index.php", "/home", "/inicio", "/início"]);
+
+/**
+ * Último recurso antes da página não encontrada, para links que chegam de fora
+ * (WhatsApp, Google, portais) num formato que o site não tem rota: qualquer
+ * endereço com código de imóvel abre a ficha; variações da página inicial vão
+ * para a home. null quando não dá para adivinhar.
+ */
+export function destinoDeEnderecoDesconhecido(caminho: string): string | null {
+  let p = caminho.toLowerCase().replace(/\/+$/, "");
+  try {
+    p = decodeURIComponent(p);
+  } catch {
+    /* endereço com % quebrado: segue como veio */
+  }
+  if (!p || INICIO.has(p)) return "/";
+  const codigo = p.match(CODIGO_IMOVEL)?.[1];
+  return codigo ? `/imovel/${codigo.toUpperCase()}` : null;
+}

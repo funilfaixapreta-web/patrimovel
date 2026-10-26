@@ -1,7 +1,8 @@
-import { lazy, Suspense, type ReactNode } from "react";
-import { createBrowserRouter, Navigate, RouterProvider, useParams } from "react-router-dom";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
+import { createBrowserRouter, Navigate, RouterProvider, useLocation, useParams } from "react-router-dom";
 import { Layout } from "./components/Layout";
-import { destinoDaListaAntiga } from "./lib/rotasAntigas";
+import { destinoDaListaAntiga, destinoDeEnderecoDesconhecido } from "./lib/rotasAntigas";
+import { registrarNaoEncontrada } from "./lib/naoEncontrada";
 import Home from "./pages/Home";
 
 const Busca = lazy(() => import("./pages/Busca"));
@@ -34,6 +35,17 @@ function ImovelAntigo() {
   const { "*": resto = "" } = useParams();
   const codigo = resto.split("/").filter(Boolean).pop() ?? "";
   return <Navigate to={`/imovel/${codigo}`} replace />;
+}
+
+/** Endereço sem rota: tenta achar o imóvel ou a home; se não der, registra e mostra o 404. */
+function EnderecoDesconhecido() {
+  const { pathname, search } = useLocation();
+  const destino = destinoDeEnderecoDesconhecido(pathname);
+  useEffect(() => {
+    if (!destino) registrarNaoEncontrada(pathname + search);
+  }, [destino, pathname, search]);
+  if (destino && destino !== pathname) return <Navigate to={destino} replace />;
+  return <Carregar><NaoEncontrado endereco={pathname + search} /></Carregar>;
 }
 
 /** Listagens antigas da Arbo: /imoveis/[para-alugar|a-venda]/[tipo]/{bairro-cidade-uf} */
@@ -79,7 +91,7 @@ const router = createBrowserRouter([
         ],
       },
       { path: "/cadastre-seu-imovel", element: <Navigate to="/anunciar" replace /> },
-      { path: "*", element: <Carregar><NaoEncontrado /></Carregar> },
+      { path: "*", element: <EnderecoDesconhecido /> },
     ],
   },
   // Cadastro do imóvel em tela cheia, sem o cabeçalho do site.
