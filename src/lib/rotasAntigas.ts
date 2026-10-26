@@ -51,7 +51,8 @@ export function destinoDeEnderecoDesconhecido(caminho: string): string | null {
   } catch {
     /* endereço com % quebrado: segue como veio */
   }
-  if (!p || INICIO.has(p)) return "/";
+  // Sem letra nem número (ex.: "/**", copiado das Redirect URLs do Supabase): é a home.
+  if (!/[a-z0-9]/.test(p) || INICIO.has(p)) return "/";
   const codigo = p.match(CODIGO_IMOVEL)?.[1];
   return codigo ? `/imovel/${codigo.toUpperCase()}` : null;
 }
