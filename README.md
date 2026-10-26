@@ -94,5 +94,6 @@ Tudo está marcado com `CONFIRMAR` em `src/config.ts`, `src/content.ts` e `src/p
 
 - **Sem mapa:** a vitrine não devolve coordenadas.
 - **Sem nome do condomínio:** a vitrine também não devolve esse campo.
-- **Só 5 a 7 fotos por imóvel**, com a marca d'água central da Arbo, porque é isso que a sincronização traz.
+- **Fotos com a marca d'água da Arbo**, as mesmas do site atual. Desde 26/10/2026 a sincronização lê a ficha de cada imóvel e traz todas as fotos (média de 23 por imóvel).
+- **Imóveis iguais aos do site atual:** o que a Arbo publica fica disponível no CRM e aparece aqui. Para tirar um imóvel do site, despublique na Arbo ou desmarque **Site** no CRM.
 - **Robôs veem pouco texto antes do JavaScript.** Títulos e descrições já mudam por página, mas o conteúdo só aparece depois que o JavaScript roda. Para SEO completo vale publicar com pré-renderização.
