@@ -110,6 +110,19 @@ export function Sobre() {
         </div>
       </div>
       <div className="container-site pt-16">
+        <section className="max-w-3xl">
+          <p className="text-[14px] font-semibold text-brand-700">Quem está à frente</p>
+          <h2 className="mt-2 text-[24px] font-bold">Bruno Vasconcelos</h2>
+          <p className="mt-3 text-[17px] leading-relaxed text-ink-soft">
+            Sócio da Patrimóvel Administradora, do Grupo Patrimóvel, com décadas de mercado imobiliário no Rio de Janeiro. Acompanha de perto a curadoria dos imóveis e o atendimento da equipe.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <a href="https://www.instagram.com/bruno.vasconcelos7/" target="_blank" rel="noopener" className="btn-contorno">Instagram</a>
+            <a href="https://www.linkedin.com/in/brunovasconcelosrj/" target="_blank" rel="noopener" className="btn-contorno">LinkedIn</a>
+          </div>
+        </section>
+      </div>
+      <div className="container-site pt-16">
         <div className="grid gap-10 rounded-3xl border border-sand-200 p-8 md:grid-cols-2 md:p-10">
           <div>
             <h2 className="text-[24px] font-bold">Venha conversar</h2>
