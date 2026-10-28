@@ -54,3 +54,10 @@ Deno.test("observação em texto livre antigo vira notes", () => {
   const depois = JSON.parse(mesclarObservacoes("cliente ligou", l, "2026-10-23T12:00:00Z"));
   assertEquals(depois.notes, "cliente ligou");
 });
+
+Deno.test("visitante do site só passa se for uuid", () => {
+  const ok = lerLeadSite({ origem: "contato", telefone: "21999991234", visitante: "0B8E3C2A-1F2D-4E5F-8A9B-1C2D3E4F5A6B" });
+  assertEquals("erro" in ok ? null : ok.visitante, "0b8e3c2a-1f2d-4e5f-8a9b-1c2d3e4f5a6b");
+  const ruim = lerLeadSite({ origem: "contato", telefone: "21999991234", visitante: "'; drop table x" });
+  assertEquals("erro" in ruim ? "x" : ruim.visitante, null);
+});

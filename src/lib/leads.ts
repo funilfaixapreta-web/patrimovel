@@ -1,4 +1,5 @@
 import { empresa, leadsUrl } from "../config";
+import { visitanteId } from "./visitas";
 
 export type OrigemLead =
   | "ficha_contato"
@@ -56,7 +57,7 @@ export async function enviarLeadAoCrm(l: Lead) {
   const r = await fetch(leadsUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...l, enviado_em: new Date().toISOString() }),
+    body: JSON.stringify({ ...l, visitante: visitanteId(), enviado_em: new Date().toISOString() }),
   });
   if (!r.ok) throw new Error(`Falha ao enviar (${r.status})`);
 }

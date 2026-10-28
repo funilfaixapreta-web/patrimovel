@@ -75,6 +75,13 @@ async function entregar(db: Db, orgId: string, contactId: string, lead: LeadSite
   return String(imovel.corretor_id);
 }
 
+/** O que o visitante olhou no site (site-visitas) passa a aparecer no lead. */
+async function ligarVisitante(db: Db, orgId: string, lead: LeadSite, contactId: string) {
+  if (!lead.visitante) return;
+  const { error } = await db.rpc("ligar_visitante_ao_contato", { p_org_id: orgId, p_visitante: lead.visitante, p_contact_id: contactId });
+  if (error) console.error("[site-leads] visitante:", error.message);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (req.method === "GET") return json(200, { ok: true, servico: "site-leads" });
@@ -118,6 +125,7 @@ Deno.serve(async (req) => {
         ...(existente.traffic_source ? {} : { traffic_source: "Site" }),
       }).eq("id", existente.id);
       if (error) throw error;
+      await ligarVisitante(db, orgId, lead, existente.id);
       return json(200, { success: true, deduped: true });
     }
 
@@ -145,6 +153,7 @@ Deno.serve(async (req) => {
     }).select("id").single();
     if (error) throw error;
 
+    await ligarVisitante(db, orgId, lead, novo.id);
     const corretorId = await entregar(db, orgId, novo.id, lead);
     await avisar(db, orgId, corretorId ? [corretorId] : await gestores(db, orgId), novo.id, nome, lead);
 

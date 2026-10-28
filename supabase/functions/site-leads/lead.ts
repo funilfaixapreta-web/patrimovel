@@ -23,6 +23,8 @@ export interface LeadSite {
   dataVisita: string | null;
   periodoVisita: string | null;
   pagina: string | null;
+  /** Id aleatório do navegador (site-visitas), para ligar o que a pessoa olhou ao lead. */
+  visitante: string | null;
 }
 
 const ORIGENS: OrigemLead[] = ["ficha_contato", "ficha_visita", "administracao", "vender", "contato", "home_proprietario", "anuncio"];
@@ -84,6 +86,7 @@ export function lerLeadSite(corpo: unknown): LeadSite | { erro: string } {
     dataVisita: texto(o.data_visita, 20),
     periodoVisita: texto(o.periodo_visita, 20),
     pagina: texto(o.pagina, 300),
+    visitante: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(o.visitante ?? "")) ? String(o.visitante).toLowerCase() : null,
   };
   if (!lead.telefone && !lead.email) return { erro: "Informe telefone ou e-mail" };
   return lead;

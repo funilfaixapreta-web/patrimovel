@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { CardImovel, Fatos } from "../components/CardImovel";
 import { FormLead } from "../components/FormLead";
@@ -7,6 +7,7 @@ import { Icone, IconeWhatsApp } from "../components/Icone";
 import { empresa } from "../config";
 import { useFavoritos } from "../lib/favoritos";
 import { linkWhatsApp, mensagemImovel, rastrear } from "../lib/leads";
+import { registrarVisita } from "../lib/visitas";
 import { useJsonLd, useSeo } from "../lib/seo";
 import {
   custoMensal,
@@ -106,7 +107,7 @@ function CaixaContato({ i }: { i: TImovel }) {
         href={linkWhatsApp(mensagemImovel(i.codigo, titulo))}
         target="_blank"
         rel="noopener"
-        onClick={() => rastrear("whatsapp_click", { local: "ficha", imovel_codigo: i.codigo })}
+        onClick={() => { rastrear("whatsapp_click", { local: "ficha", imovel_codigo: i.codigo }); registrarVisita(i.codigo, "whatsapp"); }}
         className="btn-whats mt-6 w-full py-3.5 text-[16px]"
       >
         <IconeWhatsApp /> Conversar no WhatsApp
@@ -126,7 +127,7 @@ function CaixaContato({ i }: { i: TImovel }) {
         )}
       </div>
       <p className="mt-4 text-center text-[13px] text-ink-muted">
-        Ou ligue <a href={`tel:${empresa.telefoneLink}`} className="num font-semibold text-ink underline" onClick={() => rastrear("phone_click", { local: "ficha" })}>{empresa.telefone}</a>
+        Ou ligue <a href={`tel:${empresa.telefoneLink}`} className="num font-semibold text-ink underline" onClick={() => { rastrear("phone_click", { local: "ficha" }); registrarVisita(i.codigo, "telefone"); }}>{empresa.telefone}</a>
       </p>
     </div>
   );
@@ -139,6 +140,9 @@ export default function Imovel() {
   const todos = estado.status === "ok" ? estado.vitrine.imoveis : [];
   const i = porCodigo(todos, codigo);
   const titulo = i ? tituloImovel(i) : "Imóvel";
+  useEffect(() => {
+    if (i?.codigo) registrarVisita(i.codigo, "visualizou");
+  }, [i?.codigo]);
   const negocioTexto = i ? [serveParaAlugar(i) && "para alugar", serveParaComprar(i) && "à venda"].filter(Boolean).join(" e ") : "";
 
   useSeo(
@@ -346,7 +350,7 @@ export default function Imovel() {
             href={linkWhatsApp(mensagemImovel(i.codigo, titulo))}
             target="_blank"
             rel="noopener"
-            onClick={() => rastrear("whatsapp_click", { local: "ficha_barra", imovel_codigo: i.codigo })}
+            onClick={() => { rastrear("whatsapp_click", { local: "ficha_barra", imovel_codigo: i.codigo }); registrarVisita(i.codigo, "whatsapp"); }}
             className="btn-whats px-4 py-3"
           >
             <IconeWhatsApp /> WhatsApp

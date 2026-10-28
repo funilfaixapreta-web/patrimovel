@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { registrarVisita } from "./visitas";
 
 const CHAVE = "padm:favoritos";
 const EVENTO = "padm:favoritos";
@@ -35,7 +36,9 @@ export function useFavoritos() {
   }, []);
   const alternar = useCallback((codigo: string) => {
     const atual = ler();
-    const nova = atual.includes(codigo) ? atual.filter((c) => c !== codigo) : [...atual, codigo];
+    const tinha = atual.includes(codigo);
+    const nova = tinha ? atual.filter((c) => c !== codigo) : [...atual, codigo];
+    registrarVisita(codigo, tinha ? "desfavoritou" : "favoritou");
     setLista(nova);
     gravar(nova);
   }, []);

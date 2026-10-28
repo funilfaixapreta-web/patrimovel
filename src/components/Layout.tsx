@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { empresa, gtmId } from "../config";
+import { empresa, gtmId, visitasUrl } from "../config";
 import { iniciais, sair, useConta } from "../lib/conta";
 import { linkWhatsApp, rastrear } from "../lib/leads";
 import { useFavoritos } from "../lib/favoritos";
@@ -335,7 +335,7 @@ function AvisoCookies() {
   useEffect(() => {
     if (decidido === "aceito") carregarGtm();
   }, [decidido]);
-  if (!gtmId || decidido) return null;
+  if ((!gtmId && !visitasUrl) || decidido) return null;
   const decidir = (v: string) => {
     try {
       localStorage.setItem(CHAVE_COOKIES, v);
@@ -348,7 +348,7 @@ function AvisoCookies() {
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-sand-200 bg-white" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
       <div className="container-site flex flex-col gap-3 py-4 text-[14px] md:flex-row md:items-center md:justify-between">
         <p className="max-w-2xl text-ink-soft">
-          Usamos cookies para medir as visitas e melhorar os anúncios. Veja a <Link to="/privacidade" className="underline">política de privacidade</Link>.
+          Usamos cookies para medir as visitas, melhorar os anúncios e lembrar os imóveis que você viu, para o nosso atendimento já saber o que você procura. Veja a <Link to="/privacidade" className="underline">política de privacidade</Link>.
         </p>
         <div className="flex gap-2">
           <button className="btn-contorno py-2.5" onClick={() => decidir("recusado")}>Recusar</button>
