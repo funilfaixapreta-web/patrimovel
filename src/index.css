@@ -11,6 +11,11 @@
     @apply bg-white text-ink antialiased;
     font-feature-settings: "ss01" on;
   }
+  img {
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
   h1, h2, h3 {
     text-wrap: balance;
     letter-spacing: -0.015em;
