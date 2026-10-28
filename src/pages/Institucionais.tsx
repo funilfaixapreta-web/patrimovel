@@ -232,6 +232,7 @@ export function Privacidade() {
       <div className="mt-8 space-y-5 text-[16px] leading-relaxed text-ink-soft">
         <p>A {empresa.nome} usa os dados enviados nos formulários (nome, WhatsApp, e-mail e mensagem) apenas para responder o seu contato, agendar visitas e apresentar imóveis e serviços que você pediu.</p>
         <p>Não vendemos nem repassamos seus dados a terceiros fora do atendimento. Os dados ficam no nosso sistema de atendimento pelo tempo necessário para o relacionamento com você ou para cumprir obrigações legais.</p>
+        <p>O site guarda neste navegador um código aleatório e registra quais imóveis foram vistos, favoritados ou levaram a um contato. Esse registro não diz quem você é. Se você mandar um formulário, ele passa a ser ligado ao seu atendimento, para o consultor já saber que tipo de imóvel você procura. Se você recusar os cookies no aviso, nada disso é registrado.</p>
         <p>Com a sua autorização no aviso de cookies, o site usa ferramentas de medição para entender as visitas e melhorar os anúncios. Você pode recusar sem perder nenhuma função do site.</p>
         <p>Para pedir acesso, correção ou exclusão dos seus dados, escreva para {empresa.email} ou chame no WhatsApp {empresa.whatsappTexto}.</p>
       </div>

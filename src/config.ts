@@ -45,4 +45,7 @@ export const usarExemplo: boolean = env.VITE_VITRINE_FALLBACK === "true" || (env
 // "whatsapp" desliga o envio ao CRM e volta a abrir o WhatsApp com a mensagem pronta.
 export const leadsUrl: string =
   env.VITE_LEADS_URL === "whatsapp" ? "" : env.VITE_LEADS_URL || `${supabaseUrl}/functions/v1/site-leads?org=${siteOrgId}`;
+// O que cada visitante olhou (src/lib/visitas.ts). "off" desliga.
+export const visitasUrl: string =
+  env.VITE_VISITAS_URL === "off" ? "" : env.VITE_VISITAS_URL || `${supabaseUrl}/functions/v1/site-visitas?org=${siteOrgId}`;
 export const gtmId: string = env.VITE_GTM_ID || "";
