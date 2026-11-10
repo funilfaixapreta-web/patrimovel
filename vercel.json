@@ -33,7 +33,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!img/|data/|assets/|favicon|apple-touch).*)",
+      "source": "/((?!api/|img/|data/|assets/|favicon|apple-touch).*)",
       "destination": "/index.html"
     }
   ],
