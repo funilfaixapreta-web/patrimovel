@@ -83,9 +83,13 @@ export function Sobre() {
     <>
       <div className="container-site pt-10 md:pt-14">
         <p className="text-[14px] font-semibold text-brand-700">Sobre nós</p>
-        <h1 className="mt-3 max-w-3xl text-[32px] font-bold leading-tight md:text-[48px]">A administradora do Grupo Patrimóvel</h1>
+        <h1 className="mt-3 max-w-3xl text-[32px] font-bold leading-tight md:text-[48px]">Mais que imóveis. Experiência, curadoria e um legado carioca.</h1>
         <div className="mt-8 grid gap-10 lg:grid-cols-[1.3fr_1fr]">
           <div className="max-w-2xl space-y-5 text-[17px] leading-relaxed text-ink-soft">
+            <p>
+              A Patrimóvel ADM é uma imobiliária com curadoria especializada nos bairros mais desejados da cidade maravilhosa, o Rio de Janeiro. Com atendimento próximo, olhar estético e profundo conhecimento do mercado carioca, entregamos mais do que imóveis: conectamos pessoas a lugares com estilo, propósito e alma.
+            </p>
+            <p>Fruto do Grupo Patrimóvel, trazemos a bagagem de décadas no mercado com um olhar moderno sobre viver e investir no Rio de Janeiro.</p>
             {/* CONFIRMAR: anos de mercado do grupo e da administradora. */}
             <p>
               A Patrimóvel Administradora faz parte do Grupo Patrimóvel, imobiliária com 46 anos de mercado no Rio de Janeiro. O grupo se dedica a lançamentos e vendas; a administradora cuida de locação, venda de imóveis prontos e administração de aluguéis.

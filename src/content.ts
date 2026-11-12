@@ -2,51 +2,55 @@
 
 export const textosBairros: Record<string, { chamada: string; texto: string }> = {
   "barra-da-tijuca": {
-    chamada: "Condomínios com lazer completo e praia de 18 km",
+    chamada: "Conforto moderno, praias extensas e vida em movimento",
     texto:
       "Apartamentos e coberturas em condomínios com portaria, piscina e área verde, além de salas e andares corporativos perto da Av. das Américas. É também onde fica o nosso escritório.",
   },
   leblon: {
-    chamada: "Ruas arborizadas, praia e tudo a pé",
+    chamada: "Onde sofisticação encontra a brisa do mar",
     texto:
-      "Prédios baixos, comércio de rua, restaurantes da Dias Ferreira e escolas tradicionais. Bairro procurado por famílias e por quem quer morar perto da praia sem depender de carro.",
+      "Prédios baixos, comércio de rua, restaurantes da Dias Ferreira e escolas tradicionais. Bairro procurado por famílias e por quem quer morar perto da praia, com tudo a poucos passos.",
   },
   ipanema: {
-    chamada: "Entre o Arpoador e o Jardim de Alah",
+    chamada: "Charme boêmio, mar inspirador e lifestyle único",
     texto:
-      "Apartamentos de todos os tamanhos a poucas quadras da praia, metrô na Praça General Osório e na Nossa Senhora da Paz e uma vida de bairro que funciona a pé.",
+      "Apartamentos de todos os tamanhos a poucas quadras da praia, gastronomia, lojas de grife e uma vida de bairro que funciona a pé.",
   },
   copacabana: {
-    chamada: "O bairro mais procurado para alugar no Rio",
+    chamada: "O clássico do Rio com energia vibrante dia e noite",
     texto:
-      "Muita oferta de apartamentos de um e dois quartos, três estações de metrô, comércio 24 horas e a orla do Leme ao Posto 6.",
+      "Muita oferta de apartamentos de um e dois quartos, comércio 24 horas e a orla do Leme ao Posto 6.",
   },
   botafogo: {
-    chamada: "Metrô, escritórios e vista para o Pão de Açúcar",
+    chamada: "Vista para o Pão de Açúcar e alma urbana",
     texto:
       "Bairro de quem trabalha na Zona Sul e no Centro. Concentra andares corporativos modernos, prédios residenciais e a Praia de Botafogo.",
   },
   centro: {
     chamada: "Lajes e andares corporativos no coração da cidade",
     texto:
-      "Andares inteiros, salas e prédios comerciais perto do metrô, do VLT e da Rio Branco, com plantas para escritórios de todos os portes.",
+      "Andares inteiros, salas e prédios comerciais perto da Rio Branco e da Primeiro de Março, com plantas para escritórios de todos os portes.",
   },
   "recreio-dos-bandeirantes": {
     chamada: "Mais espaço por metro quadrado, perto da praia",
     texto:
-      "Apartamentos amplos e coberturas em condomínios novos, com acesso rápido à Barra pela Av. das Américas e pelo BRT.",
+      "Apartamentos amplos e coberturas em condomínios novos, com acesso rápido à Barra pela Av. das Américas.",
   },
   gavea: {
-    chamada: "Tranquilo, verde e perto da PUC",
+    chamada: "Tradição carioca com cara de vila",
     texto: "Ruas calmas ao pé da Floresta da Tijuca, colégios e universidade, a cinco minutos do Leblon.",
   },
   lagoa: {
-    chamada: "Vista para a Lagoa Rodrigo de Freitas",
+    chamada: "Vista e qualidade de vida no coração da Zona Sul",
     texto: "Apartamentos amplos com vista para a Lagoa e o Cristo, ciclovia de 7,5 km na porta e acesso fácil a Ipanema e Leblon.",
   },
   "jardim-botanico": {
-    chamada: "Casas e prédios baixos cercados de verde",
+    chamada: "Cercado de verde e charme",
     texto: "Bairro residencial ao lado do Jardim Botânico e do Parque Lage, com restaurantes e escolas na vizinhança.",
+  },
+  "sao-conrado": {
+    chamada: "Entre a natureza exuberante e a sofisticação discreta",
+    texto: "Condomínios à beira-mar entre a Pedra da Gávea e o Gávea Golf, com acesso rápido ao Leblon e à Barra.",
   },
   itaipava: {
     chamada: "Região serrana de Petrópolis",

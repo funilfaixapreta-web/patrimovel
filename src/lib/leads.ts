@@ -8,7 +8,9 @@ export type OrigemLead =
   | "vender"
   | "contato"
   | "home_proprietario"
-  | "anuncio";
+  | "anuncio"
+  | "lancamento"
+  | "curadoria";
 
 export interface Lead {
   origem: OrigemLead;
@@ -19,6 +21,10 @@ export interface Lead {
   imovel_codigo?: string;
   negocio?: "alugar" | "comprar" | "administrar" | "vender";
   bairro?: string;
+  /** Lançamento da página (Orla Ipanema, 786 Prudente...). */
+  empreendimento?: string;
+  /** Faixa de valor do formulário de curadoria. */
+  valor?: string;
   data_visita?: string;
   periodo_visita?: string;
   pagina: string;
@@ -41,6 +47,10 @@ function mensagemDoLead(l: Lead): string {
   const linhas = [`Olá! Meu nome é ${l.nome}.`];
   if (l.origem === "ficha_visita" && l.imovel_codigo) {
     linhas.push(`Quero agendar uma visita ao imóvel ${l.imovel_codigo}${l.data_visita ? ` no dia ${l.data_visita}` : ""}${l.periodo_visita ? `, de ${l.periodo_visita}` : ""}.`);
+  } else if (l.empreendimento) {
+    linhas.push(`Quero receber a apresentação do ${l.empreendimento}.`);
+  } else if (l.origem === "curadoria") {
+    linhas.push(`Procuro um imóvel para ${l.negocio ?? "comprar"}${l.bairro ? ` em ${l.bairro}` : ""}${l.valor ? `, até ${l.valor}` : ""}.`);
   } else if (l.imovel_codigo) {
     linhas.push(`Tenho interesse no imóvel ${l.imovel_codigo}.`);
   } else if (l.negocio === "administrar") {

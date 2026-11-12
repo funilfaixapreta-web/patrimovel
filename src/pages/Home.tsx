@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { BuscaHero } from "../components/BuscaHero";
+import { Curadoria } from "../components/Curadoria";
 import { GradeImoveis } from "../components/CardImovel";
 import { Icone } from "../components/Icone";
 import { passosAdministracao } from "../content";
@@ -136,6 +137,28 @@ export default function Home() {
         </div>
         <GradeImoveis lista={(residenciaisComprar.length >= 6 ? residenciaisComprar : comprar).slice(0, 6)} negocio="comprar" carregando={carregando} />
       </section>
+
+      {/* Lançamento em destaque (veio do site antigo) */}
+      <section className="container-site pt-20 md:pt-24">
+        <Link to="/orlaipanema" className="group relative isolate block overflow-hidden rounded-3xl bg-ink text-white">
+          <img src="/img/lancamentos/orlaipanema/hero.webp" alt="Fachada do Orla Ipanema" loading="lazy" className="absolute inset-0 -z-10 h-full w-full object-cover opacity-70 transition-transform duration-700 group-hover:scale-[1.03]" />
+          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-ink/85 via-ink/50 to-transparent" />
+          <div className="max-w-xl p-7 md:p-12">
+            <p className="text-[13px] font-semibold uppercase tracking-[0.2em] text-white/80">Lançamento</p>
+            <h2 className="mt-2 text-[34px] font-bold leading-tight md:text-[46px]">Orla Ipanema</h2>
+            <p className="mt-2 text-[18px] font-medium">Studios, Gardens e Coberturas</p>
+            <p className="mt-2 text-[15.5px] text-white/85">34 a 69 m² | Sauna a vapor | Piscina com deck molhado | Academia integrada</p>
+            <span className="btn mt-6 bg-white text-ink group-hover:bg-white/90">Quero conhecer</span>
+          </div>
+        </Link>
+        <p className="mt-3 text-[15px]">
+          <Link to="/lancamentos" className="inline-flex items-center gap-1.5 font-semibold text-brand-700 hover:text-brand-800">
+            Ver todos os lançamentos em Ipanema <Icone nome="seta" className="h-4 w-4" />
+          </Link>
+        </p>
+      </section>
+
+      <Curadoria />
 
       {/* Bairros */}
       {bairros.length > 0 && (
