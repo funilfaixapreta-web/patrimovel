@@ -10,9 +10,10 @@ export const empresa = {
   mapaUrl: "https://www.google.com/maps/search/?api=1&query=Av.+das+Am%C3%A9ricas%2C+500%2C+Barra+da+Tijuca%2C+Rio+de+Janeiro",
   telefone: "(21) 3152-5985",
   telefoneLink: "+552131525985",
-  // CONFIRMAR: o site atual usa este WhatsApp; o cadastro do CRM tem +55 21 92367-3097.
-  whatsappTexto: "(21) 96456-3479",
-  whatsapp: "5521964563479",
+  // WhatsApp da Fernanda (agente de IA no CRM), pedido de 12/11. O (21) 96456-3479
+  // segue no assistente da Superlógica ate ser liberado para a conta da Fernanda.
+  whatsappTexto: "(21) 92367-3097",
+  whatsapp: "5521923673097",
   email: "leadsadministradora@patrimoveladm.com.br",
   horario: "Segunda a sexta, das 9h às 18h. Sábado, das 9h às 14h.",
   redes: [
