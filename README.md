@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-`npm run build` gera a pasta `dist/` (site estático). O `vercel.json` já tem os redirecionamentos 301 das URLs antigas da Arbo (`/imovel/{tipo}/{negocio}/{cidade}/{uf}/{bairro}/{CODIGO}` vira `/imovel/{CODIGO}`) e a regra de SPA.
+`npm run build` gera a pasta `dist/` (site estático). O `vercel.json` já tem os redirecionamentos 301 das URLs antigas da Arbo (`/imovel/{tipo}/{negocio}/{cidade}/{uf}/{bairro}/{CODIGO}` vira `/imovel/{CODIGO}`) e a regra de SPA. Desde 12/11 o site está em https://imoveis.patrimoveladm.com.br: o `patrimovel.vercel.app` redireciona para lá (308), menos `/api/` (o feed do Canal Pro continua no endereço da Vercel).
 
 ## Páginas
 
