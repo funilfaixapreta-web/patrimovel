@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-`npm run build` gera a pasta `dist/` (site estático). O `vercel.json` já tem os redirecionamentos 301 das URLs antigas da Arbo (`/imovel/{tipo}/{negocio}/{cidade}/{uf}/{bairro}/{CODIGO}` vira `/imovel/{CODIGO}`) e a regra de SPA. Desde 12/11 o site está em https://imoveis.patrimoveladm.com.br: o `patrimovel.vercel.app` redireciona para lá (308), menos `/api/` (o feed do Canal Pro continua no endereço da Vercel).
+`npm run build` gera a pasta `dist/` (site estático). O `vercel.json` já tem os redirecionamentos 301 das URLs antigas da Arbo (`/imovel/{tipo}/{negocio}/{cidade}/{uf}/{bairro}/{CODIGO}` vira `/imovel/{CODIGO}`) e a regra de SPA. O site está em https://patrimoveladm.com.br (antes era o Wix). `www.patrimoveladm.com.br` redireciona no domínio da Vercel; `imoveis.patrimoveladm.com.br` e `patrimovel.vercel.app` redirecionam pelo `vercel.json` (308), menos `/api/` (o feed do Canal Pro continua no endereço da Vercel).
 
 ## Páginas
 
@@ -74,7 +74,7 @@ Tudo roda no projeto Supabase do CRM (`tdjvryuublqixpzqnzvs`). Os arquivos ficam
 
 Estes ajustes ficam no painel do Supabase (Authentication), fora do código:
 
-- **URL Configuration > Redirect URLs:** incluir o domínio do site (ex.: `https://www.patrimoveladm.com.br/**`) e `http://localhost:5173/**`. Sem isso, os links de confirmação e de senha nova abrem o CRM em vez do site.
+- **URL Configuration > Redirect URLs:** incluir o domínio do site (`https://patrimoveladm.com.br/**`) e `http://localhost:5173/**`. Sem isso, os links de confirmação e de senha nova abrem o CRM em vez do site.
 - **SMTP próprio:** o envio padrão do Supabase tem limite baixo de e-mails por hora. Com o site no ar, configure um SMTP (Resend, SES ou similar) com remetente da Patrimóvel.
 - **Templates de e-mail:** os textos de confirmação e de senha nova são os mesmos do CRM. Vale trocar para a marca da Patrimóvel, ou usar o `{{ .RedirectTo }}` para identificar de onde veio.
 
