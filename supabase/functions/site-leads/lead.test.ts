@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1.0.8";
-import { lerLeadSite, mesclarObservacoes, telefoneE164, variantesDoTelefone, type LeadSite } from "./lead.ts";
+import { lerLeadSite, mesclarObservacoes, resumoDoLead, telefoneE164, variantesDoTelefone, type LeadSite } from "./lead.ts";
 
 Deno.test("telefone com máscara vira E.164 com DDI 55", () => {
   assertEquals(telefoneE164("(21) 99999-1234"), "+5521999991234");
@@ -60,4 +60,13 @@ Deno.test("visitante do site só passa se for uuid", () => {
   assertEquals("erro" in ok ? null : ok.visitante, "0b8e3c2a-1f2d-4e5f-8a9b-1c2d3e4f5a6b");
   const ruim = lerLeadSite({ origem: "contato", telefone: "21999991234", visitante: "'; drop table x" });
   assertEquals("erro" in ruim ? "x" : ruim.visitante, null);
+});
+
+Deno.test("lancamento e curadoria entram com o empreendimento e o valor", () => {
+  const l = lerLeadSite({ origem: "lancamento", nome: "Ana", telefone: "21999991234", empreendimento: "Orla Ipanema", negocio: "comprar" }) as LeadSite;
+  assertEquals(l.empreendimento, "Orla Ipanema");
+  assertEquals(resumoDoLead(l), "Lançamento (site) · Lançamento: Orla Ipanema · Quer comprar");
+  const c = lerLeadSite({ origem: "curadoria", telefone: "21999991234", negocio: "alugar", bairro: "Leblon", valor: "até R$ 15 mil" }) as LeadSite;
+  assertEquals(resumoDoLead(c), "Curadoria (procura imóvel) (site) · Quer alugar · Bairro: Leblon · Valor: até R$ 15 mil");
+  assertEquals(JSON.parse(mesclarObservacoes(null, l, "2026-11-11")).ai_fields.lancamento_interesse, "Orla Ipanema");
 });

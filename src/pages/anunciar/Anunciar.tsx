@@ -348,7 +348,7 @@ function Etapa8({ a, mudar, erros, aceite, setAceite, irPara }: { a: Anuncio; mu
         <CampoTexto rotulo="Título do anúncio" valor={a.titulo} aoMudar={(v) => mudar({ titulo: v.slice(0, 90) })} dica={`${a.titulo.length}/90 caracteres`} />
         <div>
           <Rotulo htmlFor="descricao" opcional>Descrição</Rotulo>
-          <textarea id="descricao" value={a.descricao} onChange={(e) => mudar({ descricao: e.target.value })} className="campo min-h-[140px] resize-y" placeholder="Conte o que o imóvel tem de melhor: vista, reforma recente, rua tranquila, perto do metrô..." />
+          <textarea id="descricao" value={a.descricao} onChange={(e) => mudar({ descricao: e.target.value })} className="campo min-h-[140px] resize-y" placeholder="Conte o que o imóvel tem de melhor: vista, reforma recente, rua tranquila, perto da praia..." />
         </div>
       </section>
       <section className="grid gap-3">

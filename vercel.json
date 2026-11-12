@@ -27,11 +27,6 @@
       "permanent": true
     },
     {
-      "source": "/blog",
-      "destination": "/bairros",
-      "permanent": false
-    },
-    {
       "source": "/anunciar-imovel",
       "destination": "/anunciar",
       "permanent": true
@@ -39,6 +34,16 @@
     {
       "source": "/conheca/:resto*",
       "destination": "/sobre",
+      "permanent": true
+    },
+    {
+      "source": "/blog/tags/:tag*",
+      "destination": "/blog",
+      "permanent": true
+    },
+    {
+      "source": "/blog-feed.xml",
+      "destination": "/blog",
       "permanent": true
     }
   ],

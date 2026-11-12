@@ -18,6 +18,10 @@ const Favoritos = lazy(() => import("./pages/Institucionais").then((m) => ({ def
 const Privacidade = lazy(() => import("./pages/Institucionais").then((m) => ({ default: m.Privacidade })));
 const TermosDeUso = lazy(() => import("./pages/Institucionais").then((m) => ({ default: m.TermosDeUso })));
 const NaoEncontrado = lazy(() => import("./pages/NaoEncontrado"));
+const ListaLancamentos = lazy(() => import("./pages/Lancamentos").then((m) => ({ default: m.ListaLancamentos })));
+const PaginaLancamento = lazy(() => import("./pages/Lancamentos").then((m) => ({ default: m.PaginaLancamento })));
+const ListaBlog = lazy(() => import("./pages/Blog").then((m) => ({ default: m.ListaBlog })));
+const PaginaPost = lazy(() => import("./pages/Blog").then((m) => ({ default: m.PaginaPost })));
 // Protótipo da conta do anunciante
 const Entrar = lazy(() => import("./pages/conta/Entrar"));
 const ContaLayout = lazy(() => import("./pages/conta/ContaLayout"));
@@ -91,6 +95,18 @@ const router = createBrowserRouter([
         ],
       },
       { path: "/cadastre-seu-imovel", element: <Navigate to="/anunciar" replace /> },
+      // Páginas do site antigo (Wix), nos mesmos endereços.
+      { path: "/lancamentos", element: <Carregar><ListaLancamentos /></Carregar> },
+      ...["orlaipanema", "belavistaipanema", "vistaipanema", "786prudente"].map((slug) => ({
+        path: `/${slug}`,
+        element: <Carregar><PaginaLancamento key={slug} slug={slug} /></Carregar>,
+      })),
+      { path: "/blog", element: <Carregar><ListaBlog /></Carregar> },
+      { path: "/blog/categories/:categoria", element: <Carregar><ListaBlog /></Carregar> },
+      { path: "/blog/tags/*", element: <Navigate to="/blog" replace /> },
+      { path: "/blog-feed.xml", element: <Navigate to="/blog" replace /> },
+      { path: "/post/:slug", element: <Carregar><PaginaPost /></Carregar> },
+      { path: "/curadoria", element: <Navigate to="/#curadoria" replace /> },
       { path: "*", element: <EnderecoDesconhecido /> },
     ],
   },

@@ -9,7 +9,9 @@ export type OrigemLead =
   | "vender"
   | "contato"
   | "home_proprietario"
-  | "anuncio";
+  | "anuncio"
+  | "lancamento"
+  | "curadoria";
 
 export interface LeadSite {
   origem: OrigemLead;
@@ -20,6 +22,10 @@ export interface LeadSite {
   codigoImovel: string | null;
   negocio: "alugar" | "comprar" | "administrar" | "vender" | null;
   bairro: string | null;
+  /** Lançamento da página (Orla Ipanema, 786 Prudente...). */
+  empreendimento: string | null;
+  /** Faixa de valor que a pessoa escreveu no formulário de curadoria. */
+  valor: string | null;
   dataVisita: string | null;
   periodoVisita: string | null;
   pagina: string | null;
@@ -27,7 +33,7 @@ export interface LeadSite {
   visitante: string | null;
 }
 
-const ORIGENS: OrigemLead[] = ["ficha_contato", "ficha_visita", "administracao", "vender", "contato", "home_proprietario", "anuncio"];
+const ORIGENS: OrigemLead[] = ["ficha_contato", "ficha_visita", "administracao", "vender", "contato", "home_proprietario", "anuncio", "lancamento", "curadoria"];
 const NEGOCIOS = ["alugar", "comprar", "administrar", "vender"] as const;
 
 /** Rótulo de cada formulário no card e no histórico do lead. */
@@ -39,6 +45,8 @@ export const ROTULO_ORIGEM: Record<OrigemLead, string> = {
   contato: "Fale conosco",
   home_proprietario: "Home (proprietário)",
   anuncio: "Anúncio cadastrado pelo proprietário",
+  lancamento: "Lançamento",
+  curadoria: "Curadoria (procura imóvel)",
 };
 
 function texto(v: unknown, max: number): string | null {
@@ -83,6 +91,8 @@ export function lerLeadSite(corpo: unknown): LeadSite | { erro: string } {
     codigoImovel: texto(o.imovel_codigo, 40)?.toUpperCase() ?? null,
     negocio,
     bairro: texto(o.bairro, 80),
+    empreendimento: texto(o.empreendimento, 80),
+    valor: texto(o.valor, 40),
     dataVisita: texto(o.data_visita, 20),
     periodoVisita: texto(o.periodo_visita, 20),
     pagina: texto(o.pagina, 300),
@@ -102,9 +112,11 @@ export function tipoNegocio(l: LeadSite): string | null {
 /** Texto que a equipe lê no card. */
 export function resumoDoLead(l: LeadSite): string {
   const partes = [`${ROTULO_ORIGEM[l.origem]} (site)`];
+  if (l.empreendimento) partes.push(`Lançamento: ${l.empreendimento}`);
   if (l.codigoImovel) partes.push(`Imóvel ${l.codigoImovel}`);
   if (l.negocio) partes.push(`Quer ${l.negocio}`);
   if (l.bairro) partes.push(`Bairro: ${l.bairro}`);
+  if (l.valor) partes.push(`Valor: ${l.valor}`);
   if (l.dataVisita) partes.push(`Visita: ${l.dataVisita}${l.periodoVisita ? `, ${l.periodoVisita}` : ""}`);
   if (l.mensagem) partes.push(`Mensagem: ${l.mensagem}`);
   return partes.join(" · ");
@@ -137,6 +149,8 @@ export function mesclarObservacoes(obs: string | null, l: LeadSite, quando: stri
   const finalidade = tipoNegocio(l);
   if (finalidade && !campos.finalidade) campos.finalidade = finalidade;
   if (l.bairro && !campos.bairro) campos.bairro = l.bairro;
+  if (l.empreendimento) campos.lancamento_interesse = l.empreendimento;
+  if (l.valor && !campos.faixa_valor) campos.faixa_valor = l.valor;
   if (l.email && !campos.email) campos.email = l.email;
   if (l.dataVisita) campos.visita_pedida = `${l.dataVisita}${l.periodoVisita ? `, ${l.periodoVisita}` : ""}`;
 

@@ -11,6 +11,7 @@ const NAV = [
   { to: "/comprar", rotulo: "Comprar" },
   { to: "/administracao", rotulo: "Administração" },
   { to: "/vender", rotulo: "Vender" },
+  { to: "/lancamentos", rotulo: "Lançamentos" },
   { to: "/bairros", rotulo: "Bairros" },
   { to: "/contato", rotulo: "Contato" },
 ];
@@ -242,7 +243,9 @@ function Rodape() {
             <li><Link className="hover:text-white" to="/alugar">Para alugar</Link></li>
             <li><Link className="hover:text-white" to="/comprar">À venda</Link></li>
             <li><Link className="hover:text-white" to="/alugar?grupo=comercial">Salas e andares corporativos</Link></li>
+            <li><Link className="hover:text-white" to="/lancamentos">Lançamentos em Ipanema</Link></li>
             <li><Link className="hover:text-white" to="/bairros">Bairros</Link></li>
+            <li><Link className="hover:text-white" to="/blog">Blog</Link></li>
             <li><Link className="hover:text-white" to="/favoritos">Favoritos</Link></li>
           </ul>
         </div>

@@ -2,12 +2,15 @@ import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { enviarLead, mascaraTelefone, telefoneValido, type Lead } from "../lib/leads";
 import { Icone } from "./Icone";
 
-type Campo = "email" | "mensagem" | "bairro" | "negocio" | "visita";
+type Campo = "email" | "mensagem" | "bairro" | "negocio" | "visita" | "valor";
 
 interface Props {
   origem: Lead["origem"];
   campos?: Campo[];
   imovelCodigo?: string;
+  empreendimento?: string;
+  rotuloBairro?: string;
+  placeholderBairro?: string;
   negocioPadrao?: Lead["negocio"];
   opcoesNegocio?: { valor: NonNullable<Lead["negocio"]>; rotulo: string }[];
   botao?: string;
@@ -26,6 +29,9 @@ export function FormLead({
   origem,
   campos = ["email"],
   imovelCodigo,
+  empreendimento,
+  rotuloBairro = "Bairro do imóvel",
+  placeholderBairro = "Ex.: Barra da Tijuca",
   negocioPadrao,
   opcoesNegocio,
   botao = "Enviar",
@@ -38,6 +44,7 @@ export function FormLead({
   const [email, setEmail] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [bairro, setBairro] = useState("");
+  const [valor, setValor] = useState("");
   const [negocio, setNegocio] = useState<Lead["negocio"]>(negocioPadrao ?? opcoesNegocio?.[0]?.valor);
   const [data, setData] = useState("");
   const [periodo, setPeriodo] = useState("manhã");
@@ -61,6 +68,8 @@ export function FormLead({
         bairro: bairro.trim() || undefined,
         negocio,
         imovel_codigo: imovelCodigo,
+        empreendimento,
+        valor: valor.trim() || undefined,
         data_visita: data ? data.split("-").reverse().join("/") : undefined,
         periodo_visita: campos.includes("visita") ? periodo : undefined,
         pagina: window.location.pathname,
@@ -121,8 +130,14 @@ export function FormLead({
       </div>
       {campos.includes("bairro") && (
         <div>
-          <label htmlFor={`${id}-bairro`} className="rotulo">Bairro do imóvel</label>
-          <input id={`${id}-bairro`} className="campo" value={bairro} onChange={(e) => setBairro(e.target.value)} placeholder="Ex.: Barra da Tijuca" />
+          <label htmlFor={`${id}-bairro`} className="rotulo">{rotuloBairro}</label>
+          <input id={`${id}-bairro`} className="campo" value={bairro} onChange={(e) => setBairro(e.target.value)} placeholder={placeholderBairro} />
+        </div>
+      )}
+      {campos.includes("valor") && (
+        <div>
+          <label htmlFor={`${id}-valor`} className="rotulo">Valor <span className="font-normal text-ink-muted">(opcional)</span></label>
+          <input id={`${id}-valor`} className="campo" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Ex.: até R$ 15 mil por mês ou até R$ 3 milhões" />
         </div>
       )}
       {campos.includes("visita") && (
