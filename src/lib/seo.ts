@@ -28,7 +28,7 @@ export function useSeo(titulo: string, descricao = PADRAO_DESC, imagem?: string)
       canon.rel = "canonical";
       document.head.appendChild(canon);
     }
-    canon.href = `https://www.patrimoveladm.com.br${window.location.pathname}`;
+    canon.href = `https://imoveis.patrimoveladm.com.br${window.location.pathname}`;
   }, [titulo, descricao, imagem]);
 }
 
