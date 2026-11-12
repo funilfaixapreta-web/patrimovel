@@ -8,7 +8,18 @@
           "value": "patrimovel.vercel.app"
         }
       ],
-      "destination": "https://imoveis.patrimoveladm.com.br/$1",
+      "destination": "https://patrimoveladm.com.br/$1",
+      "permanent": true
+    },
+    {
+      "source": "/((?!api/).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "imoveis.patrimoveladm.com.br"
+        }
+      ],
+      "destination": "https://patrimoveladm.com.br/$1",
       "permanent": true
     },
     {

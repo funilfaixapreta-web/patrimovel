@@ -160,7 +160,7 @@ export default function Imovel() {
             "@context": "https://schema.org",
             "@type": "RealEstateListing",
             name: titulo,
-            url: `https://www.patrimoveladm.com.br/imovel/${i.codigo}`,
+            url: `https://patrimoveladm.com.br/imovel/${i.codigo}`,
             image: i.fotos.slice(0, 5),
             datePosted: i.updated_at,
             offers: [
