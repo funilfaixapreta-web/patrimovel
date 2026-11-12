@@ -82,7 +82,7 @@ Estes ajustes ficam no painel do Supabase (Authentication), fora do código:
 
 Tudo está marcado com `CONFIRMAR` em `src/config.ts`, `src/content.ts` e `src/pages/Institucionais.tsx`.
 
-- Número de WhatsApp. O site atual usa (21) 96456-3479 e o CRM tem (21) 92367-3097.
+- Número de WhatsApp: desde 12/11 o site usa o da Fernanda, (21) 92367-3097 (o (21) 96456-3479 segue com o assistente da Superlógica).
 - Lista do que está incluso na administração, garantias aceitas e respostas das perguntas frequentes.
 - Taxa de administração (`taxaAdministracao`). Enquanto for `null`, o simulador "Quanto você recebe" fica escondido.
 - Links do portal da Superlógica para proprietário e inquilino (`areaDoCliente`). Sem eles, a página mostra o WhatsApp do atendimento.
